@@ -208,8 +208,8 @@ footer ul { margin: 0; padding-left: 18px; }
         <tbody>
           <tr><th>R／L</th><td>R＝1塁側（ライト側）、L＝3塁側（レフト側）</td></tr>
           <tr><th>番号</th><td>ホームベース裏が小さく、センターに向かって大きくなります。R側とL側に同じ番号があります。</td></tr>
-          <tr><th>列</th><td>グラウンドに近いほど小さい番号。1〜34列が2階、35〜47列が3階、51〜61列が5階。外野は26列が最前列です。</td></tr>
-          <tr><th>通路</th><td>R側：11〜28（2・3階）、51〜61（5階）<br>L側：31〜48（2・3階）、71〜81（5階）</td></tr>
+          <tr><th>列</th><td>グラウンドに近いほど小さい番号です。1〜47列はスタンドで、チケットに階は書かれません。51〜61列は5階で、チケットに「5階」と書かれます。外野側は26列が最前列です。</td></tr>
+          <tr><th>通路</th><td>R側：11〜28（スタンド）、51〜61（5階）<br>L側：31〜48（スタンド）、71〜81（5階）</td></tr>
           <tr><th>横通路</th><td>34列と35列の間、47列の後ろ、5階の53列と54列の間に広い通路があります。</td></tr>
           <tr><th>5階の探し方</th><td>縦に11列しかないので、番号で横位置を合わせてから列を確認すると早いです。</td></tr>
         </tbody>
@@ -237,10 +237,10 @@ footer ul { margin: 0; padding-left: 18px; }
     var M_PER_UNIT = 0.48;   // dome Ø ≈ 187 m ↔ 5F outer ring Ø 392 units
 
   var TIERS = {
-    lower: { name: "2階スタンド前方", rows: "1〜24列", r1: 100, r2: 126, from: 1, to: 24 },
-    middle: { name: "2階スタンド後方", rows: "25〜34列", r1: 128, r2: 148, from: 25, to: 34 },
-    upper: { name: "3階スタンド", rows: "35〜47列", r1: 150, r2: 172, from: 35, to: 47 },
-    f5: { name: "5階", rows: "51〜61列", r1: 176, r2: 196, from: 51, to: 61 }
+    lower: { name: "スタンド前方", rows: "1〜24列", r1: 100, r2: 126, from: 1, to: 24 },
+    middle: { name: "スタンド中ほど", rows: "25〜34列", r1: 128, r2: 148, from: 25, to: 34 },
+    upper: { name: "スタンド後方", rows: "35〜47列", r1: 150, r2: 172, from: 35, to: 47 },
+    f5: { name: "5階スタンド", rows: "51〜61列", r1: 176, r2: 196, from: 51, to: 61 }
   };
   var OUTFIELD_FROM_DEG = 108;
   // From the official LoveLive! Fest STAGE MAP: main stage at the center-field end,
@@ -318,7 +318,7 @@ footer ul { margin: 0; padding-left: 18px; }
     return { x: "10〜12倍", note: "手ぶれを抑える防振タイプがあると安心" };
   }
   var VIEW_NOTES = {
-    lower: "アリーナより一段高い位置から見下ろせる段です。花道やセンターステージでの動きも追いやすいです。",
+    lower: "アリーナに張り出した段で、前の列ほどアリーナに近い高さになります。花道やセンターステージがよく見えます。",
     middle: "近さと見渡しやすさのバランスがよい段です。34列の後ろに横通路があります。",
     upper: "高さがあり、照明や演出の全体像をつかみやすい段です。",
     f5: "天井に近い高所です。演出全体はきれいに見えますが、キャストを見るには双眼鏡とスクリーンが頼りになります。"
@@ -434,7 +434,7 @@ footer ul { margin: 0; padding-left: 18px; }
     var p = pt(deg, rowRadius(row), s);
     var ep = estPassage(tierKey, side, seat);
 
-    if (tierKey !== "f5" && seat > 720) warns.push("番号が大きすぎるようです。2・3階の番号はおおむね700番前後までです。");
+    if (tierKey !== "f5" && seat > 720) warns.push("番号が大きすぎるようです。スタンド（1〜47列）の番号はおおむね700番前後までです。");
     if (tierKey === "f5" && seat > 660) warns.push("番号が大きすぎるようです。5階の番号はおおむね650番前後までです。");
     if (tierKey !== "f5" && deg > OUTFIELD_FROM_DEG && row < 26) warns.push("外野側は26列が最前列です。列か番号をもう一度確かめてください。");
     if (input.floor) {
@@ -446,7 +446,7 @@ footer ul { margin: 0; padding-left: 18px; }
       if (!pi) warns.push(input.passage + "通路という通路は見つかりません。");
       else {
         if (pi.side !== side) warns.push(input.passage + "通路は" + (pi.side === "R" ? "1塁側（R）" : "3塁側（L）") + "の通路です。サイドを確かめてください。");
-        if (pi.f5 !== (tierKey === "f5")) warns.push(input.passage + "通路は" + (pi.f5 ? "5階" : "2・3階") + "の通路です。列と合っているか確かめてください。");
+        if (pi.f5 !== (tierKey === "f5")) warns.push(input.passage + "通路は" + (pi.f5 ? "5階" : "スタンド（1〜47列）") + "の通路です。列と合っているか確かめてください。");
         else if (pi.side === side && Math.abs(input.passage - ep) > 1) warns.push("チケットの" + input.passage + "通路と、番号からの推定（" + ep + "通路）が離れています。図の位置は番号から出しています。");
       }
     }
@@ -511,7 +511,7 @@ footer ul { margin: 0; padding-left: 18px; }
     slot.appendChild(buildMap(q));
     var lg = document.createElement("div");
     lg.className = "legend";
-    lg.innerHTML = '<span><i style="background:var(--t1)"></i>2階前方</span><span><i style="background:var(--t2)"></i>2階後方</span><span><i style="background:var(--t3)"></i>3階</span><span><i style="background:var(--t5)"></i>5階</span><span><i style="background:var(--area-s)"></i>アリーナS</span><span><i style="background:var(--area-a)"></i>アリーナA</span><span><i style="background:var(--pin)"></i>この席（推定）</span>';
+    lg.innerHTML = '<span><i style="background:var(--t1)"></i>1〜24列</span><span><i style="background:var(--t2)"></i>25〜34列</span><span><i style="background:var(--t3)"></i>35〜47列</span><span><i style="background:var(--t5)"></i>5階</span><span><i style="background:var(--area-s)"></i>アリーナS</span><span><i style="background:var(--area-a)"></i>アリーナA</span><span><i style="background:var(--pin)"></i>この席（推定）</span>';
     slot.appendChild(lg);
     document.getElementById("copy-btn").addEventListener("click", function () {
       var text = "ラブライブ！フェス バンテリンドーム " + (q.side === "R" ? "1塁側" : "3塁側") + " " + q.side + q.row + "列 " + q.seat + "番" +
