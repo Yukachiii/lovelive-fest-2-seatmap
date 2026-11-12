@@ -138,6 +138,8 @@ footer ul { margin: 0; padding-left: 18px; }
 .checks label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); cursor: pointer; }
 .checks input { width: 18px; height: 18px; accent-color: var(--accent); }
 .seg.three { grid-template-columns: 1fr 1fr 1fr; }
+.x-btn { display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; border-radius: 12px; padding: 14px 16px; font-weight: 700; font-size: 16px; background: #0f1419; color: #ffffff; }
+.x-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .share-preview { width: 100%; max-width: 420px; margin: 0 auto; display: block; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); aspect-ratio: 4 / 5; }
 #share-text { min-height: 120px; font-size: 15px; }
 .copyright { margin: 0; text-align: center; font-size: 13px; color: var(--muted); padding-top: 8px; border-top: 1px solid var(--line); }
@@ -222,15 +224,9 @@ footer ul { margin: 0; padding-left: 18px; }
       <textarea id="share-text"></textarea>
       <div class="row" style="margin-top:6px"><button type="button" class="btn-ghost" id="share-reset" style="padding:6px 12px;font-size:13px">投稿文を作り直す</button></div>
     </div>
-    <div class="row">
-      <button type="button" class="btn-primary" id="share-native">画像つきで共有</button>
-      <a class="btn-ghost" id="share-x" href="https://x.com/intent/post" target="_blank" rel="noopener">Xに投稿</a>
-    </div>
-    <div class="row">
-      <button type="button" class="btn-ghost" id="share-save">画像を保存</button>
-      <button type="button" class="btn-ghost" id="share-copy">投稿文をコピー</button>
-    </div>
-    <p class="hint" id="share-msg">スマホでは「画像つきで共有」からXを選ぶと、画像と投稿文をまとめて投稿できます。パソコンでは画像を保存してから「Xに投稿」を押し、画像を添付してください。</p>
+    <a class="btn-primary x-btn" id="share-x" href="https://x.com/intent/post" target="_blank" rel="noopener">Xで共有（画像つき）</a>
+    <p class="hint" id="share-msg">スマホでは共有画面が開くので「X」を選んでください。画像と投稿文が入った状態で投稿画面が開きます。パソコンでは画像を保存してからXの投稿画面を開くので、保存した画像を添付してください。</p>
+    <div class="row"><button type="button" class="btn-ghost" id="share-copy" style="padding:6px 12px;font-size:13px">投稿文をコピー</button><span class="hint">Xに投稿文が入らなかったときに</span></div>
   </section>
 
   <section class="card" id="history-card" hidden>
@@ -946,20 +942,30 @@ footer ul { margin: 0; padding-left: 18px; }
   });
   $("share-text").addEventListener("input", function () { share.dirty = true; updateXLink(); });
   $("share-reset").addEventListener("click", function () { share.dirty = false; refreshShare(); });
-  $("share-save").addEventListener("click", saveImage);
   $("share-copy").addEventListener("click", function () {
     var msg = $("share-msg");
     try {
       navigator.clipboard.writeText($("share-text").value).then(function () { msg.textContent = "投稿文をコピーしました。"; }, function () { msg.textContent = "コピーできませんでした。投稿文を長押ししてコピーしてください。"; });
     } catch (e) { msg.textContent = "コピーできませんでした。投稿文を長押ししてコピーしてください。"; }
   });
-  $("share-native").addEventListener("click", function () {
+  function isPhone() {
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  }
+  // Phones: OS share sheet with the image + text (pick X). Others: save the image and open X's post screen.
+  $("share-x").addEventListener("click", function (e) {
     var file = shareFile(), msg = $("share-msg");
-    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file], text: $("share-text").value }).catch(function () {});
-    } else {
-      msg.textContent = "この端末では画像つきの共有が使えません。「画像を保存」してから「Xに投稿」を押し、画像を添付してください。";
+    updateXLink();
+    if (isPhone() && file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      e.preventDefault();
+      navigator.share({ files: [file], text: $("share-text").value }).catch(function (err) {
+        if (err && err.name !== "AbortError") msg.textContent = "共有できませんでした。もう一度お試しください。";
+      });
+      return;
     }
+    if (!share.url) { e.preventDefault(); msg.textContent = "画像を作っています。少し待ってからもう一度押してください。"; return; }
+    saveImage();
+    msg.textContent = "画像を保存しました。開いたXの投稿画面で、保存した画像（lovelive-fest-seat.png）を添付してください。";
   });
   function showShare(q) {
     share.q = q;
