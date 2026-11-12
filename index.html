@@ -157,11 +157,20 @@ footer ul { margin: 0; padding-left: 18px; }
   <section class="card" aria-labelledby="in-title">
     <h2 id="in-title">チケットの座席を入力</h2>
     <form class="manual" id="manual-form">
-      <div class="seg" role="radiogroup" aria-label="サイド">
+      <div class="seg three" role="radiogroup" aria-label="場所">
         <input type="radio" name="side" id="side-r" value="R" checked><label for="side-r">1塁側（R）</label>
         <input type="radio" name="side" id="side-l" value="L"><label for="side-l">3塁側（L）</label>
+        <input type="radio" name="side" id="side-arena" value="arena"><label for="side-arena">アリーナ</label>
       </div>
-      <div class="fields">
+      <div id="arena-fields" hidden>
+        <label id="upg-label">アップグレード</label>
+        <div class="seg three" role="radiogroup" aria-labelledby="upg-label" style="margin-top:4px">
+          <input type="radio" name="upg" id="upg-s" value="S"><label for="upg-s">アプグレS</label>
+          <input type="radio" name="upg" id="upg-a" value="A"><label for="upg-a">アプグレA</label>
+          <input type="radio" name="upg" id="upg-none" value="none" checked><label for="upg-none">なし</label>
+        </div>
+      </div>
+      <div class="fields" id="stand-fields">
         <div><label for="row">列</label><input type="number" id="row" inputmode="numeric" min="1" max="61" placeholder="20" required></div>
         <div><label for="seat">番号</label><input type="number" id="seat" inputmode="numeric" min="1" max="800" placeholder="300" required></div>
         <div><label for="passage">通路（任意）</label><input type="number" id="passage" inputmode="numeric" min="11" max="81" placeholder="38"></div>
@@ -169,7 +178,7 @@ footer ul { margin: 0; padding-left: 18px; }
       </div>
       <div class="row"><button type="submit" class="btn-primary">この席を探す</button></div>
     </form>
-    <p class="hint">5階席は、列に51〜61の番号を入れてください。アリーナ席は公演ごとの仮設席のため検索できません。ステージ位置は公式のSTAGE MAP（イメージ図）をもとにしていて、距離は目安です。</p>
+    <p class="hint">5階席は、列に51〜61の番号を入れてください。アリーナ席はブロックや列の並びが公演ごとに決まるため、アップグレードの区画だけを表示します。ステージ位置は公式のSTAGE MAP（イメージ図）をもとにしていて、距離は目安です。</p>
 
     <details id="paste-box">
       <summary>チケットの表記を貼り付けて読み取る</summary>
@@ -197,7 +206,7 @@ footer ul { margin: 0; padding-left: 18px; }
         <input type="radio" name="day" id="day-none" value="" checked><label for="day-none">入れない</label>
       </div>
     </div>
-    <div>
+    <div id="hide-box">
       <p class="hint" style="margin-bottom:6px">隠す項目</p>
       <div class="checks">
         <label><input type="checkbox" id="hide-gate"> ゲート</label>
@@ -206,7 +215,7 @@ footer ul { margin: 0; padding-left: 18px; }
         <label><input type="checkbox" id="hide-seat" checked> 番号</label>
       </div>
     </div>
-    <p class="hint">隠した項目は、画像にも投稿文にも入りません。列か番号を隠すと、図のピンの代わりに「だいたいこの辺」の丸で表示します。</p>
+    <p class="hint" id="hide-hint">隠した項目は、画像にも投稿文にも入りません。列か番号を隠すと、図のピンの代わりに「だいたいこの辺」の丸で表示します。</p>
     <img id="share-img" class="share-preview" alt="共有用の画像のプレビュー">
     <div>
       <label for="share-text">投稿文</label>
@@ -296,6 +305,14 @@ footer ul { margin: 0; padding-left: 18px; }
   var STAGE = { x1: 140, x2: 260, y1: 84, y2: 114, cx: 200, cy: 99, face: { x: 0, y: 1 } };
   var CENTER_STAGE = { x1: 190, x2: 210, y1: 160, y2: 178 };
   var USED_UNTIL_DEG = 110; // stands beyond this are not drawn on the official map
+  var ZONES = {
+    none: { name: "アリーナ（アップグレードなし）", short: "一般アリーナ", fill: "var(--arena-gen)", label: [200, 256],
+      polys: [[[126, 214], [274, 214], [212, 266], [188, 266]]] },
+    A: { name: "アップグレードエリアA席", short: "アプグレA", fill: "var(--area-a)", label: [122, 130],
+      polys: [[[90, 136], [153, 136], [153, 210], [130, 210]], [[310, 136], [247, 136], [247, 210], [270, 210]]] },
+    S: { name: "アップグレードエリアS席", short: "アプグレS", fill: "var(--area-s)", label: [200, 226],
+      polys: [[[157, 136], [243, 136], [243, 210], [157, 210]]] }
+  };
   function tierOf(row) {
     if (row >= 1 && row <= 24) return "lower";
     if (row >= 25 && row <= 34) return "middle";
@@ -380,7 +397,12 @@ footer ul { margin: 0; padding-left: 18px; }
   function parseTicket(text) {
     var t = normalize(text);
     var m, res = {};
-    if (/アリーナ/.test(t)) res.arena = true;
+    if (/アリーナ/.test(t)) {
+      res.arena = true;
+      if (/(エリア|アップグレード|アプグレ)\s*S|S\s*席/i.test(t)) res.upg = "S";
+      else if (/(エリア|アップグレード|アプグレ)\s*A|A\s*席/i.test(t)) res.upg = "A";
+      else res.upg = "none";
+    }
     if ((m = t.match(/(\d+)\s*ゲート/))) res.gate = +m[1];
     if ((m = t.match(/(\d+)\s*通路/))) res.passage = +m[1];
     if ((m = t.match(/(\d+)\s*階/))) res.floor = +m[1];
@@ -411,13 +433,14 @@ footer ul { margin: 0; padding-left: 18px; }
         el("path", { d: band(USED_UNTIL_DEG, t[0] === "f5" ? 175 : 180, T.r1, T.r2, s), fill: t[1], opacity: 0.35 }, svg);
       });
     });
-    // arena (general) V, control booth
-    el("polygon", { points: "126,214 274,214 212,266 188,266", fill: "var(--arena-gen)" }, svg);
+    // arena zones (general V, upgrade A, upgrade S); a chosen zone is highlighted, the rest dimmed
+    var pick = q && q.arena ? q.upg : null;
+    Object.keys(ZONES).forEach(function (k) {
+      ZONES[k].polys.forEach(function (pts) {
+        el("polygon", { points: pts.map(function (p) { return p.join(","); }).join(" "), fill: ZONES[k].fill, opacity: pick && pick !== k ? 0.3 : 1 }, svg);
+      });
+    });
     el("rect", { x: 189, y: 262, width: 22, height: 9, rx: 1.5, fill: "var(--control)" }, svg);
-    // upgrade areas
-    el("polygon", { points: "90,136 153,136 153,210 130,210", fill: "var(--area-a)" }, svg);
-    el("polygon", { points: "310,136 247,136 247,210 270,210", fill: "var(--area-a)" }, svg);
-    el("rect", { x: 157, y: 136, width: 86, height: 74, fill: "var(--area-s)" }, svg);
     // stage, runway, center stage
     el("rect", { x: 196, y: 112, width: 8, height: 50, fill: "var(--arena)" }, svg);
     el("rect", { x: 198, y: 112, width: 4, height: 50, fill: "var(--stage)" }, svg);
@@ -430,6 +453,13 @@ footer ul { margin: 0; padding-left: 18px; }
     mapText(svg, 130, 178, "A", 12, "#ffffff");
     mapText(svg, 270, 178, "A", 12, "#ffffff");
     mapText(svg, 200, 240, "ARENA", 9, "var(--muted)");
+    if (pick) {
+      ZONES[pick].polys.forEach(function (pts) {
+        el("polygon", { points: pts.map(function (p) { return p.join(","); }).join(" "), fill: "none", stroke: "var(--pin)", "stroke-width": 4, "stroke-linejoin": "round" }, svg);
+      });
+      var lp = ZONES[pick].label;
+      el("text", { x: lp[0], y: lp[1], "text-anchor": "middle", "font-size": 12, "font-weight": 700, fill: "var(--pin-ink)", stroke: "var(--surface)", "stroke-width": 3, "paint-order": "stroke", "font-family": "Zen Kaku Gothic New, sans-serif" }, svg).textContent = "この区画";
+    }
 
     var est = q && !opts.hidePassage ? q.estPassage : null;
     [1, -1].forEach(function (s) {
@@ -440,7 +470,9 @@ footer ul { margin: 0; padding-left: 18px; }
     lbl(svg, 108, 262, "3塁側 L");
     lbl(svg, 200, 292, "ホーム側");
 
-    if (q && opts.approx) {
+    if (q && q.arena) {
+      // zone highlight only
+    } else if (q && opts.approx) {
       var T = TIERS[q.tierKey], sgn = q.side === "R" ? 1 : -1;
       var rr = opts.hideRow ? (T.r1 + T.r2) / 2 : rowRadius(q.row);
       var dd = opts.hideSeat ? Math.min(170, Math.max(10, Math.round(q.deg / 15) * 15)) : q.deg;
@@ -478,7 +510,7 @@ footer ul { margin: 0; padding-left: 18px; }
   
   function locate(input) {
     var errors = [], warns = [];
-    if (input.arena) return { arena: true, errors: ["アリーナ席は公演ごとに並べ方が変わる仮設の席なので、番号から位置を決められません。公式のSTAGE MAPでは、ステージ前にアップグレードのS・Aエリア、その後ろに一般のアリーナがあります。細かい位置は会場の掲示やスタッフの案内で確かめてください。", "スタンド席（1塁側・3塁側の固定席）なら、このページで探せます。"] };
+    if (input.arena) return { arena: true, upg: ZONES[input.upg] ? input.upg : "none", gate: input.gate };
     var side = input.side, row = input.row, seat = input.seat;
     if (side === "conflict") { errors.push("1塁側（R）と3塁側（L）の両方が含まれています。どちらか一方にしてください。"); side = null; }
     if (!side) errors.push("1塁側（R）か3塁側（L）かが読み取れませんでした。「1塁側」「R」などを含めてください。");
@@ -518,9 +550,64 @@ footer ul { margin: 0; padding-left: 18px; }
   }
 
   var lastQ = null, lastTitle = null;
+  function inPoly(x, y, pts) {
+    var inside = false;
+    for (var i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      var xi = pts[i][0], yi = pts[i][1], xj = pts[j][0], yj = pts[j][1];
+      if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+    }
+    return inside;
+  }
+  function zoneRange(key, rect) {
+    var lo = Infinity, hi = 0;
+    ZONES[key].polys.forEach(function (pts) {
+      for (var x = 80; x <= 320; x += 2) for (var y = 130; y <= 270; y += 2) {
+        if (!inPoly(x, y, pts)) continue;
+        var d = distToRect({ x: x, y: y }, rect);
+        if (d < lo) lo = d; if (d > hi) hi = d;
+      }
+    });
+    return { lo: Math.floor(lo / 5) * 5, hi: Math.ceil(hi / 5) * 5 };
+  }
+  function rangeText(r) { return r.lo < 5 ? "すぐ近く〜約" + r.hi + "m" : "約" + r.lo + "〜" + r.hi + "m"; }
+  var ARENA_BINO = {
+    S: { x: "なくても楽しめる距離", note: "ステージとセンターステージのすぐ前です" },
+    A: { x: "なくても〜6倍", note: "ステージの端に寄ると表情は見えにくくなります" },
+    none: { x: "6〜8倍", note: "床が平らなので、前の人で見えにくいときはスクリーンも活用を" }
+  };
+  function renderArena(q, title) {
+    var z = ZONES[q.upg];
+    var rm = zoneRange(q.upg, STAGE), rc = zoneRange(q.upg, CENTER_STAGE);
+    var notes = ["アリーナは床が平らなので、前の人の頭でステージが見えにくいことがあります。"];
+    if (q.upg === "none") notes.push("公式の案内では、通常の全席指定でもアップグレードエリア内の席になる場合があります。チケットの表記で確かめてください。");
+    else notes.push("アップグレードエリアはスタンディングで観覧できます（公式の案内より）。");
+    notes.push("ブロックや列の並びは公演ごとに決まるため、細かい位置は会場の掲示やスタッフの案内で確かめてください。");
+    resultEl.innerHTML =
+      "<h2>" + esc(title || "この席はここ") + "</h2>" +
+      '<div class="stub"><div class="stub-side" style="font-family:var(--font-body);font-size:18px">アリーナ</div>' +
+      '<div class="stub-main">' + (q.gate ? '<div class="stub-item"><b>' + q.gate + "</b><span>ゲート</span></div>" : "") +
+      '<div class="stub-item"><b style="font-family:var(--font-body);font-size:22px">' + esc(z.name) + "</b></div></div></div>" +
+      '<div class="map-box" id="map-slot"></div>' +
+      '<dl class="facts">' +
+      '<div class="fact"><dt>メインステージまで</dt><dd>' + rangeText(rm) + "<small>区画内の場所による幅</small></dd></div>" +
+      '<div class="fact"><dt>センターステージまで</dt><dd>' + rangeText(rc) + "<small>花道の先の小さなステージ</small></dd></div>" +
+      '<div class="fact"><dt>区画</dt><dd>' + esc(z.name) + "</dd></div>" +
+      '<div class="fact"><dt>双眼鏡の目安</dt><dd>' + esc(ARENA_BINO[q.upg].x) + "<small>" + esc(ARENA_BINO[q.upg].note) + "</small></dd></div>" +
+      "</dl>" +
+      '<ul class="notes">' + notes.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("") + "</ul>";
+    var slot = document.getElementById("map-slot");
+    slot.appendChild(buildMap(q));
+    var lg = document.createElement("div");
+    lg.className = "legend";
+    lg.innerHTML = '<span><i style="background:var(--area-s)"></i>アプグレS</span><span><i style="background:var(--area-a)"></i>アプグレA</span><span><i style="background:var(--arena-gen)"></i>一般アリーナ</span><span><i style="background:var(--pin)"></i>この区画</span>';
+    slot.appendChild(lg);
+    if (!title) setTimeout(function () { showShare(q); }, 0); else document.getElementById("share-card").hidden = true;
+  }
+
   function render(q, title) {
     lastQ = q; lastTitle = title || null;
     resultEl.innerHTML = "";
+    if (q.arena) { renderArena(q, title); return; }
     if (q.errors) {
       document.getElementById("share-card").hidden = true;
       resultEl.innerHTML = "<h2>" + (q.arena ? "アリーナ席は検索できません" : "座席を特定できませんでした") + '</h2><div class="alert">' +
@@ -586,8 +673,9 @@ footer ul { margin: 0; padding-left: 18px; }
 
   function loadHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch (e) { return []; } }
   function saveHistory(q) {
-    var item = { side: q.side, row: q.row, seat: q.seat, passage: q.passage || null, gate: q.gate || null, floor: q.floor || null };
-    var list = loadHistory().filter(function (h) { return !(h.side === item.side && h.row === item.row && h.seat === item.seat); });
+    var item = q.arena ? { arena: true, upg: q.upg, gate: q.gate || null }
+      : { side: q.side, row: q.row, seat: q.seat, passage: q.passage || null, gate: q.gate || null, floor: q.floor || null };
+    var list = loadHistory().filter(function (h) { return q.arena ? !(h.arena && h.upg === item.upg) : !(h.side === item.side && h.row === item.row && h.seat === item.seat); });
     list.unshift(item);
     list = list.slice(0, 8);
     try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); } catch (e) {}
@@ -602,7 +690,7 @@ footer ul { margin: 0; padding-left: 18px; }
     list.forEach(function (h) {
       var b = document.createElement("button");
       b.type = "button";
-      b.textContent = h.side + h.row + "列 " + h.seat + "番" + (h.passage ? "・" + h.passage + "通路" : "");
+      b.textContent = h.arena ? "アリーナ・" + ZONES[h.upg || "none"].short : h.side + h.row + "列 " + h.seat + "番" + (h.passage ? "・" + h.passage + "通路" : "");
       b.addEventListener("click", function () { run(h, false); });
       box.appendChild(b);
     });
@@ -614,8 +702,22 @@ footer ul { margin: 0; padding-left: 18px; }
     if (!q.errors && remember) saveHistory(q);
     if (!q.errors) fillManual(q);
   }
+  function syncMode() {
+    var arena = document.getElementById("side-arena").checked;
+    document.getElementById("arena-fields").hidden = !arena;
+    document.getElementById("stand-fields").hidden = arena;
+    ["row", "seat", "passage", "gate"].forEach(function (id) { document.getElementById(id).disabled = arena; });
+  }
+  ["side-r", "side-l", "side-arena"].forEach(function (id) { document.getElementById(id).addEventListener("change", syncMode); });
   function fillManual(q) {
+    if (q.arena) {
+      document.getElementById("side-arena").checked = true;
+      document.getElementById("upg-" + (q.upg === "S" ? "s" : q.upg === "A" ? "a" : "none")).checked = true;
+      syncMode();
+      return;
+    }
     document.getElementById(q.side === "R" ? "side-r" : "side-l").checked = true;
+    syncMode();
     document.getElementById("row").value = q.row;
     document.getElementById("seat").value = q.seat;
     document.getElementById("passage").value = q.passage || "";
@@ -632,7 +734,11 @@ footer ul { margin: 0; padding-left: 18px; }
   document.getElementById("manual-form").addEventListener("submit", function (e) {
     e.preventDefault();
     var num = function (id) { var v = parseInt(normalize(document.getElementById(id).value), 10); return isNaN(v) ? undefined : v; };
-    run({ side: document.getElementById("side-r").checked ? "R" : "L", row: num("row"), seat: num("seat"), passage: num("passage"), gate: num("gate") }, true);
+    if (document.getElementById("side-arena").checked) {
+      run({ arena: true, upg: document.getElementById("upg-s").checked ? "S" : document.getElementById("upg-a").checked ? "A" : "none" }, true);
+    } else {
+      run({ side: document.getElementById("side-r").checked ? "R" : "L", row: num("row"), seat: num("seat"), passage: num("passage"), gate: num("gate") }, true);
+    }
     resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   // ---------- share ----------
@@ -671,6 +777,11 @@ footer ul { margin: 0; padding-left: 18px; }
   }
   function pageUrl() { return /^https?:/.test(location.protocol) ? location.origin + location.pathname : ""; }
   function buildShareText(q, o) {
+    if (q.arena) {
+      var ua = pageUrl();
+      return "ラブライブ！フェス" + (o.day ? " Day." + o.day : "") + "の座席はこちら！\n" + ZONES[q.upg].name +
+        "\nメインステージまで" + rangeText(zoneRange(q.upg, STAGE)) + "\n#ラフェス #ラフェス座席" + (ua ? "\n" + ua : "");
+    }
     var fx = shareFacts(q, o);
     var day = o.day ? " Day." + o.day : "";
     var url = pageUrl();
@@ -715,6 +826,7 @@ footer ul { margin: 0; padding-left: 18px; }
 
       // seat stub
       var sx = 48, sy = 222, sw = W - 96, sh = 168;
+      if (q.arena) return drawArenaStub(ctx, q, o, sx, sy, sw, sh, W, mapImg);
       ctx.fillStyle = "#ffffff"; rr(ctx, sx, sy, sw, sh, 22); ctx.fill();
       ctx.save(); rr(ctx, sx, sy, sw, sh, 22); ctx.clip();
       ctx.fillStyle = "#c8246b"; ctx.fillRect(sx, sy, 170, sh); ctx.restore();
@@ -764,9 +876,34 @@ footer ul { margin: 0; padding-left: 18px; }
       return new Promise(function (res) { cv.toBlob(function (b) { res(b); }, "image/png"); });
     });
   }
+  function drawArenaStub(ctx, q, o, sx, sy, sw, sh, W, mapImg) {
+    ctx.fillStyle = "#ffffff"; rr(ctx, sx, sy, sw, sh, 22); ctx.fill();
+    ctx.save(); rr(ctx, sx, sy, sw, sh, 22); ctx.clip();
+    ctx.fillStyle = "#c8246b"; ctx.fillRect(sx, sy, 170, sh); ctx.restore();
+    ctx.fillStyle = "#ffffff"; ctx.textAlign = "center";
+    ctx.font = "700 44px " + NUM; ctx.fillText("ARENA", sx + 85, sy + 92);
+    ctx.font = "700 26px " + JP; ctx.fillText("アリーナ", sx + 85, sy + 132);
+    ctx.setLineDash([8, 8]); ctx.strokeStyle = "#e4d6df"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(sx + 172, sy + 12); ctx.lineTo(sx + 172, sy + sh - 12); ctx.stroke(); ctx.setLineDash([]);
+    var x0 = sx + 204, maxW = sx + sw - 24 - x0;
+    ctx.textAlign = "left"; ctx.fillStyle = "#6e5a67"; ctx.font = "500 28px " + JP;
+    ctx.fillText(q.upg === "none" ? "アップグレードなし" : "アップグレード", x0, sy + 50);
+    ctx.fillStyle = "#23131d";
+    var big = q.upg === "none" ? "アリーナ" : "エリア" + q.upg + "席";
+    fitFont(ctx, big, 700, 76, JP, maxW); ctx.fillText(big, x0, sy + 136);
+    ctx.drawImage(mapImg, 140, 404, 800, 800);
+    ctx.textAlign = "center"; ctx.fillStyle = "#23131d";
+    var line = "メインステージまで " + rangeText(zoneRange(q.upg, STAGE));
+    fitFont(ctx, line, 700, 40, JP, W - 120); ctx.fillText(line, W / 2, 1262);
+    ctx.fillStyle = "#6e5a67"; ctx.font = "500 22px " + JP;
+    ctx.fillText("ラブライブ！フェス 座席ファインダー（非公式）で作成　位置・距離は目安", W / 2, 1316);
+    return new Promise(function (res) { ctx.canvas.toBlob(function (b) { res(b); }, "image/png"); });
+  }
   function refreshShare() {
     var q = share.q;
     if (!q) return;
+    $("hide-box").hidden = !!q.arena;
+    $("hide-hint").hidden = !!q.arena;
     var o = shareOpts();
     if (!share.dirty) $("share-text").value = buildShareText(q, o);
     updateXLink();
