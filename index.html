@@ -18,6 +18,7 @@
   --line: #e4d6df;
   --accent: #c8246b;
   --pin: #f29d00;
+  --pin-ink: #b86e00;
   --warn: #9a4b00;
   --warn-bg: #fff3e0;
   --arena: #ece4e9;
@@ -39,14 +40,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #150e13; --surface: #20161d; --ink: #f3e8ef; --muted: #b29fab; --line: #3a2a35;
-    --accent: #ff6fa8; --pin: #ffb431; --warn: #fbbf62; --warn-bg: #2d2214;
+    --accent: #ff6fa8; --pin: #ffb431; --pin-ink: #ffb431; --warn: #fbbf62; --warn-bg: #2d2214;
     --arena: #2b2129; --arena-gen: #5a3149; --stage: #f3e8ef; --on-stage: #150e13; --area-s: #e0566a; --area-a: #6f8bf0; --control: #8a8a8a; --t1: #6b2f4b; --t2: #57283f; --t3: #462235; --t5: #36202c;
     --on-accent: #1a0d14; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #150e13; --surface: #20161d; --ink: #f3e8ef; --muted: #b29fab; --line: #3a2a35;
-  --accent: #ff6fa8; --pin: #ffb431; --warn: #fbbf62; --warn-bg: #2d2214;
+  --accent: #ff6fa8; --pin: #ffb431; --pin-ink: #ffb431; --warn: #fbbf62; --warn-bg: #2d2214;
   --arena: #2b2129; --arena-gen: #5a3149; --stage: #f3e8ef; --on-stage: #150e13; --area-s: #e0566a; --area-a: #6f8bf0; --control: #8a8a8a; --t1: #6b2f4b; --t2: #57283f; --t3: #462235; --t5: #36202c;
   --on-accent: #1a0d14; color-scheme: dark;
 }
@@ -133,6 +134,13 @@ a { color: var(--accent); }
 footer { font-size: 12px; color: var(--muted); display: grid; gap: 6px; }
 footer ul { margin: 0; padding-left: 18px; }
 
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+.checks label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); cursor: pointer; }
+.checks input { width: 18px; height: 18px; accent-color: var(--accent); }
+.seg.three { grid-template-columns: 1fr 1fr 1fr; }
+.share-preview { width: 100%; max-width: 420px; margin: 0 auto; display: block; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); aspect-ratio: 4 / 5; }
+#share-text { min-height: 120px; font-size: 15px; }
+.copyright { margin: 0; text-align: center; font-size: 13px; color: var(--muted); padding-top: 8px; border-top: 1px solid var(--line); }
 @keyframes pulse { from { r: 6; opacity: .7; } to { r: 20; opacity: 0; } }
 .pulse { animation: pulse 1.6s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) { .pulse { animation: none; opacity: 0; } }
@@ -178,6 +186,43 @@ footer ul { margin: 0; padding-left: 18px; }
   </section>
 
   <section class="card" id="result" aria-live="polite"></section>
+
+  <section class="card" id="share-card" hidden aria-labelledby="share-title">
+    <h2 id="share-title">画像つきで共有する</h2>
+    <div class="stage-day">
+      <label id="day-label">公演日</label>
+      <div class="seg three" role="radiogroup" aria-labelledby="day-label">
+        <input type="radio" name="day" id="day-1" value="1"><label for="day-1">Day.1</label>
+        <input type="radio" name="day" id="day-2" value="2"><label for="day-2">Day.2</label>
+        <input type="radio" name="day" id="day-none" value="" checked><label for="day-none">入れない</label>
+      </div>
+    </div>
+    <div>
+      <p class="hint" style="margin-bottom:6px">隠す項目</p>
+      <div class="checks">
+        <label><input type="checkbox" id="hide-gate"> ゲート</label>
+        <label><input type="checkbox" id="hide-passage"> 通路</label>
+        <label><input type="checkbox" id="hide-row"> 列</label>
+        <label><input type="checkbox" id="hide-seat" checked> 番号</label>
+      </div>
+    </div>
+    <p class="hint">隠した項目は、画像にも投稿文にも入りません。列か番号を隠すと、図のピンの代わりに「だいたいこの辺」の丸で表示します。</p>
+    <img id="share-img" class="share-preview" alt="共有用の画像のプレビュー">
+    <div>
+      <label for="share-text">投稿文</label>
+      <textarea id="share-text"></textarea>
+      <div class="row" style="margin-top:6px"><button type="button" class="btn-ghost" id="share-reset" style="padding:6px 12px;font-size:13px">投稿文を作り直す</button></div>
+    </div>
+    <div class="row">
+      <button type="button" class="btn-primary" id="share-native">画像つきで共有</button>
+      <a class="btn-ghost" id="share-x" href="https://x.com/intent/post" target="_blank" rel="noopener">Xに投稿</a>
+    </div>
+    <div class="row">
+      <button type="button" class="btn-ghost" id="share-save">画像を保存</button>
+      <button type="button" class="btn-ghost" id="share-copy">投稿文をコピー</button>
+    </div>
+    <p class="hint" id="share-msg">スマホでは「画像つきで共有」からXを選ぶと、画像と投稿文をまとめて投稿できます。パソコンでは画像を保存してから「Xに投稿」を押し、画像を添付してください。</p>
+  </section>
 
   <section class="card" id="history-card" hidden>
     <h2>最近調べた席</h2>
@@ -227,6 +272,7 @@ footer ul { margin: 0; padding-left: 18px; }
       <li><a href="https://dragons.jp/ticket/sales/seatsearch.html">中日ドラゴンズ 座席検索（スタンド席の正確な位置）</a></li>
       <li><a href="https://minkara.carview.co.jp/userid/200628/blog/17249772/">ナゴヤドームのゲート・通路・列・座席番号の位置（みんカラ）</a></li>
     </ul>
+    <p class="copyright">©ゆいゆい</p>
   </footer>
 </div>
 
@@ -352,7 +398,8 @@ footer ul { margin: 0; padding-left: 18px; }
     if (parent) parent.appendChild(e);
     return e;
   }
-  function buildMap(q) {
+  function buildMap(q, opts) {
+    opts = opts || {};
     var svg = el("svg", { viewBox: "0 0 400 400", class: "map", role: "img" });
     el("title", {}, svg).textContent = "ドーム図：ステージ配置と推定位置";
     el("circle", { cx: C, cy: C, r: 127, fill: "var(--arena)" }, svg);
@@ -384,7 +431,7 @@ footer ul { margin: 0; padding-left: 18px; }
     mapText(svg, 270, 178, "A", 12, "#ffffff");
     mapText(svg, 200, 240, "ARENA", 9, "var(--muted)");
 
-    var est = q ? q.estPassage : null;
+    var est = q && !opts.hidePassage ? q.estPassage : null;
     [1, -1].forEach(function (s) {
       for (var p = 1; p <= 18; p++) drawPassage(svg, (s > 0 ? 10 : 30) + p, (40 * p - 20) / 720 * 180, 149, s, est === (s > 0 ? 10 : 30) + p);
       for (var p5 = 1; p5 <= 11; p5++) drawPassage(svg, (s > 0 ? 50 : 70) + p5, (60 * p5 - 15) / 660 * 180, 186, s, est === (s > 0 ? 50 : 70) + p5);
@@ -393,7 +440,17 @@ footer ul { margin: 0; padding-left: 18px; }
     lbl(svg, 108, 262, "3塁側 L");
     lbl(svg, 200, 292, "ホーム側");
 
-    if (q) {
+    if (q && opts.approx) {
+      var T = TIERS[q.tierKey], sgn = q.side === "R" ? 1 : -1;
+      var rr = opts.hideRow ? (T.r1 + T.r2) / 2 : rowRadius(q.row);
+      var dd = opts.hideSeat ? Math.min(170, Math.max(10, Math.round(q.deg / 15) * 15)) : q.deg;
+      var c = pt(dd, rr, sgn);
+      var rad = 24;
+      el("line", { x1: f(c.x), y1: f(c.y), x2: Math.max(STAGE.x1, Math.min(STAGE.x2, c.x)), y2: STAGE.y2, stroke: "var(--pin)", "stroke-width": 1.5, "stroke-dasharray": "4 3" }, svg);
+      el("circle", { cx: f(c.x), cy: f(c.y), r: rad, fill: "var(--pin)", "fill-opacity": 0.28, stroke: "var(--pin)", "stroke-width": 3 }, svg);
+      var ly = c.y < 200 ? c.y + rad + 13 : c.y - rad - 6;
+      el("text", { x: f(c.x), y: f(ly), "text-anchor": "middle", "font-size": 12, "font-weight": 700, fill: "var(--pin-ink)", stroke: "var(--surface)", "stroke-width": 3, "paint-order": "stroke", "font-family": "Zen Kaku Gothic New, sans-serif" }, svg).textContent = "だいたいこの辺";
+    } else if (q) {
       var tx = Math.max(STAGE.x1, Math.min(STAGE.x2, q.x)), ty = STAGE.y2;
       el("line", { x1: q.x, y1: q.y, x2: tx, y2: ty, stroke: "var(--pin)", "stroke-width": 1.5, "stroke-dasharray": "4 3" }, svg);
       el("circle", { cx: q.x, cy: q.y, r: 6, fill: "none", stroke: "var(--pin)", "stroke-width": 2, class: "pulse" }, svg);
@@ -465,6 +522,7 @@ footer ul { margin: 0; padding-left: 18px; }
     lastQ = q; lastTitle = title || null;
     resultEl.innerHTML = "";
     if (q.errors) {
+      document.getElementById("share-card").hidden = true;
       resultEl.innerHTML = "<h2>" + (q.arena ? "アリーナ席は検索できません" : "座席を特定できませんでした") + '</h2><div class="alert">' +
         q.errors.map(function (e) { return '<p class="error">' + esc(e) + "</p>"; }).join("") + "</div>";
       return;
@@ -511,6 +569,7 @@ footer ul { margin: 0; padding-left: 18px; }
 
     var slot = document.getElementById("map-slot");
     slot.appendChild(buildMap(q));
+    if (!title) setTimeout(function () { showShare(q); }, 0); else document.getElementById("share-card").hidden = true;
     var lg = document.createElement("div");
     lg.className = "legend";
     lg.innerHTML = '<span><i style="background:var(--t1)"></i>1〜24列</span><span><i style="background:var(--t2)"></i>25〜34列</span><span><i style="background:var(--t3)"></i>35〜47列</span><span><i style="background:var(--t5)"></i>5階</span><span><i style="background:var(--area-s)"></i>アリーナS</span><span><i style="background:var(--area-a)"></i>アリーナA</span><span><i style="background:var(--pin)"></i>この席（推定）</span>';
@@ -576,7 +635,185 @@ footer ul { margin: 0; padding-left: 18px; }
     run({ side: document.getElementById("side-r").checked ? "R" : "L", row: num("row"), seat: num("seat"), passage: num("passage"), gate: num("gate") }, true);
     resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  window.__seat = { parseTicket: parseTicket, locate: locate, stageRelation: stageRelation };
+  // ---------- share ----------
+  var IMG_COLORS = {
+    arena: "#ece4e9", "arena-gen": "#e3b9d1", stage: "#23131d", "on-stage": "#ffffff", "area-s": "#d93a4f", "area-a": "#3f5fd6",
+    control: "#6b6b6b", t1: "#e9b7cd", t2: "#efcadb", t3: "#f4dbe6", t5: "#f8e8ef", pin: "#f29d00", "pin-ink": "#b86e00",
+    surface: "#ffffff", muted: "#6e5a67", accent: "#c8246b", ink: "#23131d"
+  };
+  var JP = '"Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", sans-serif';
+  var NUM = '"Barlow Condensed", "Zen Kaku Gothic New", sans-serif';
+  var share = { q: null, blob: null, url: null, dirty: false, seq: 0 };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function shareOpts() {
+    var o = {
+      day: $("day-1").checked ? "1" : $("day-2").checked ? "2" : "",
+      hideGate: $("hide-gate").checked, hidePassage: $("hide-passage").checked,
+      hideRow: $("hide-row").checked, hideSeat: $("hide-seat").checked
+    };
+    o.approx = o.hideRow || o.hideSeat;
+    return o;
+  }
+  function shareFacts(q, o) {
+    var rel = stageRelation(q);
+    var step = o.approx ? 10 : 5;
+    return { dist: Math.max(10, Math.round(rel.dist / step) * step), dir: rel.dir };
+  }
+  function seatPhrase(q, o) {
+    var parts = [];
+    if (q.gate && !o.hideGate) parts.push(q.gate + "ゲート");
+    if (q.passage && !o.hidePassage) parts.push(q.passage + "通路");
+    var main = (q.tierKey === "f5" ? "5階" : "") + "スタンド" + (q.side === "R" ? "1塁側" : "3塁側");
+    var rs = (!o.hideRow ? q.side + q.row + "列" : "") + (!o.hideSeat ? (o.hideRow ? "" : " ") + q.seat + "番" : "");
+    parts.push(main + (rs ? " " + rs.trim() : ""));
+    return parts.join(" ");
+  }
+  function pageUrl() { return /^https?:/.test(location.protocol) ? location.origin + location.pathname : ""; }
+  function buildShareText(q, o) {
+    var fx = shareFacts(q, o);
+    var day = o.day ? " Day." + o.day : "";
+    var url = pageUrl();
+    return "ラブライブ！フェス" + day + "の座席はこちら！\n" + seatPhrase(q, o) +
+      "\nメインステージまで約" + fx.dist + "m（" + fx.dir + "）\n#ラフェス" + (url ? "\n" + url : "");
+  }
+  function rr(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function loadImage(src) {
+    return new Promise(function (res, rej) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = rej; i.src = src; });
+  }
+  function mapSvgString(q, o) {
+    var svg = buildMap(q, o);
+    svg.setAttribute("width", "800"); svg.setAttribute("height", "800");
+    Array.prototype.forEach.call(svg.querySelectorAll(".pulse"), function (n) { n.parentNode.removeChild(n); });
+    return new XMLSerializer().serializeToString(svg).replace(/var\(--([a-z0-9-]+)\)/g, function (_, k) { return IMG_COLORS[k] || "#000000"; });
+  }
+  function fitFont(ctx, text, weight, size, family, maxW) {
+    do { ctx.font = weight + " " + size + "px " + family; size -= 2; } while (ctx.measureText(text).width > maxW && size > 12);
+  }
+  function makeShareImage(q, o) {
+    var fontsReady = (document.fonts && document.fonts.load) ? Promise.all([
+      document.fonts.load('700 56px "Zen Kaku Gothic New"'), document.fonts.load('500 28px "Zen Kaku Gothic New"'),
+      document.fonts.load('700 80px "Barlow Condensed"')]).catch(function () {}) : Promise.resolve();
+    return fontsReady.then(function () {
+      return loadImage("data:image/svg+xml;charset=utf-8," + encodeURIComponent(mapSvgString(q, o)));
+    }).then(function (mapImg) {
+      var W = 1080, H = 1350, cv = document.createElement("canvas");
+      cv.width = W; cv.height = H;
+      var ctx = cv.getContext("2d");
+      ctx.fillStyle = "#f4eff3"; ctx.fillRect(0, 0, W, H);
+      var g = ctx.createLinearGradient(0, 0, W, 0);
+      g.addColorStop(0, "#ec6fa8"); g.addColorStop(1, "#46bfec");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, 190);
+      ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+      ctx.font = "500 28px " + JP; ctx.fillText("LoveLive! Series 15th Anniversary", W / 2, 52);
+      ctx.font = "700 64px " + JP; ctx.fillText("ラブライブ！フェス", W / 2, 124);
+      var dayLine = o.day === "1" ? "Day.1　2026.11.14 SAT" : o.day === "2" ? "Day.2　2026.11.15 SUN" : "2026.11.14 SAT – 11.15 SUN";
+      ctx.font = "500 28px " + JP; ctx.fillText(dayLine + "　バンテリンドーム ナゴヤ", W / 2, 170);
+
+      // seat stub
+      var sx = 48, sy = 222, sw = W - 96, sh = 168;
+      ctx.fillStyle = "#ffffff"; rr(ctx, sx, sy, sw, sh, 22); ctx.fill();
+      ctx.save(); rr(ctx, sx, sy, sw, sh, 22); ctx.clip();
+      ctx.fillStyle = "#c8246b"; ctx.fillRect(sx, sy, 170, sh); ctx.restore();
+      ctx.fillStyle = "#ffffff"; ctx.textAlign = "center";
+      ctx.font = "700 96px " + NUM; ctx.fillText(q.side, sx + 85, sy + 104);
+      ctx.font = "700 26px " + JP; ctx.fillText(q.side === "R" ? "1塁側" : "3塁側", sx + 85, sy + 144);
+      ctx.setLineDash([8, 8]); ctx.strokeStyle = "#e4d6df"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(sx + 172, sy + 12); ctx.lineTo(sx + 172, sy + sh - 12); ctx.stroke(); ctx.setLineDash([]);
+      var items = [];
+      if (q.gate && !o.hideGate) items.push([q.gate, "ゲート"]);
+      if (q.passage && !o.hidePassage) items.push([q.passage, "通路"]);
+      if (!o.hideRow) items.push([q.row, "列"]);
+      if (!o.hideSeat) items.push([q.seat, "番"]);
+      var tierName = TIERS[q.tierKey].name;
+      ctx.textAlign = "left";
+      var x0 = sx + 204;
+      ctx.fillStyle = "#6e5a67"; ctx.font = "500 28px " + JP;
+      ctx.fillText(tierName + (o.approx ? "（だいたいの位置）" : ""), x0, sy + 50);
+      if (items.length) {
+        var x = x0, maxX = sx + sw - 24;
+        items.forEach(function (it) {
+          ctx.fillStyle = "#23131d"; ctx.font = "700 84px " + NUM; ctx.fillText(String(it[0]), x, sy + 136);
+          x += ctx.measureText(String(it[0])).width + 4;
+          ctx.fillStyle = "#6e5a67"; ctx.font = "500 28px " + JP; ctx.fillText(it[1], x, sy + 136);
+          x += ctx.measureText(it[1]).width + 26;
+        });
+        if (x > maxX) { /* very long: redraw smaller */
+          ctx.fillStyle = "#ffffff"; ctx.fillRect(x0 - 4, sy + 64, maxX - x0 + 8, 90);
+          var line = items.map(function (it) { return it[0] + it[1]; }).join("  ");
+          ctx.fillStyle = "#23131d"; fitFont(ctx, line, 700, 60, JP, maxX - x0); ctx.fillText(line, x0, sy + 128);
+        }
+      } else {
+        ctx.fillStyle = "#23131d"; ctx.font = "700 56px " + JP;
+        ctx.fillText((q.tierKey === "f5" ? "5階" : "") + "スタンド" + (q.side === "R" ? "1塁側" : "3塁側"), x0, sy + 126);
+      }
+
+      // map
+      ctx.drawImage(mapImg, 140, 404, 800, 800);
+
+      // facts
+      var fx = shareFacts(q, o);
+      ctx.textAlign = "center"; ctx.fillStyle = "#23131d";
+      fitFont(ctx, "メインステージまで 約" + fx.dist + "m ・ " + fx.dir, 700, 40, JP, W - 120);
+      ctx.fillText("メインステージまで 約" + fx.dist + "m ・ " + fx.dir, W / 2, 1262);
+      ctx.fillStyle = "#6e5a67"; ctx.font = "500 22px " + JP;
+      ctx.fillText("ラブライブ！フェス 座席ファインダー（非公式）で作成　位置・距離は目安", W / 2, 1316);
+      return new Promise(function (res) { cv.toBlob(function (b) { res(b); }, "image/png"); });
+    });
+  }
+  function refreshShare() {
+    var q = share.q;
+    if (!q) return;
+    var o = shareOpts();
+    if (!share.dirty) $("share-text").value = buildShareText(q, o);
+    updateXLink();
+    var my = ++share.seq;
+    makeShareImage(q, o).then(function (blob) {
+      if (my !== share.seq || !blob) return;
+      share.blob = blob;
+      if (share.url) URL.revokeObjectURL(share.url);
+      share.url = URL.createObjectURL(blob);
+      $("share-img").src = share.url;
+    }).catch(function () { $("share-msg").textContent = "画像を作れませんでした。ページを再読み込みしてもう一度お試しください。"; });
+  }
+  function updateXLink() { $("share-x").href = "https://x.com/intent/post?text=" + encodeURIComponent($("share-text").value); }
+  function shareFile() { return share.blob ? new File([share.blob], "lovelive-fest-seat.png", { type: "image/png" }) : null; }
+  function saveImage() {
+    if (!share.url) return;
+    var a = document.createElement("a");
+    a.href = share.url; a.download = "lovelive-fest-seat.png";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  ["day-1", "day-2", "day-none", "hide-gate", "hide-passage", "hide-row", "hide-seat"].forEach(function (id) {
+    $(id).addEventListener("change", refreshShare);
+  });
+  $("share-text").addEventListener("input", function () { share.dirty = true; updateXLink(); });
+  $("share-reset").addEventListener("click", function () { share.dirty = false; refreshShare(); });
+  $("share-save").addEventListener("click", saveImage);
+  $("share-copy").addEventListener("click", function () {
+    var msg = $("share-msg");
+    try {
+      navigator.clipboard.writeText($("share-text").value).then(function () { msg.textContent = "投稿文をコピーしました。"; }, function () { msg.textContent = "コピーできませんでした。投稿文を長押ししてコピーしてください。"; });
+    } catch (e) { msg.textContent = "コピーできませんでした。投稿文を長押ししてコピーしてください。"; }
+  });
+  $("share-native").addEventListener("click", function () {
+    var file = shareFile(), msg = $("share-msg");
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], text: $("share-text").value }).catch(function () {});
+    } else {
+      msg.textContent = "この端末では画像つきの共有が使えません。「画像を保存」してから「Xに投稿」を押し、画像を添付してください。";
+    }
+  });
+  function showShare(q) {
+    share.q = q;
+    $("share-card").hidden = false;
+    refreshShare();
+  }
+
+  window.__seat = { parseTicket: parseTicket, locate: locate, stageRelation: stageRelation, buildShareText: buildShareText };
 
   var EXAMPLE = "２ゲート　スタンド３塁側　３８通路　L20列　300番";
   render(locate(parseTicket(EXAMPLE)), "表示例（" + EXAMPLE.replace(/　/g, " ") + "）");
