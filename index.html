@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ラブライブ！フェス 座席ファインダー</title>
+<meta name="description" content="バンテリンドーム ナゴヤ「LoveLive! Series 15th Anniversary ラブライブ！フェス」のスタンド席の位置を、チケットの表記から図で確かめられる非公式ツールです。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: one narrow column (phone first). Ticket line in → stub readout → dome map with stage + pin → distance/direction facts → event notes. */
+:root {
+  --bg: #f4eff3;
+  --surface: #ffffff;
+  --ink: #23131d;
+  --muted: #6e5a67;
+  --line: #e4d6df;
+  --accent: #c8246b;
+  --pin: #f29d00;
+  --warn: #9a4b00;
+  --warn-bg: #fff3e0;
+  --arena: #ddd2da;
+  --stage: #c8246b;
+  --t1: #e9b7cd;
+  --t2: #efcadb;
+  --t3: #f4dbe6;
+  --t5: #f8e8ef;
+  --on-accent: #ffffff;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --font-num: "Barlow Condensed", "Zen Kaku Gothic New", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #150e13; --surface: #20161d; --ink: #f3e8ef; --muted: #b29fab; --line: #3a2a35;
+    --accent: #ff6fa8; --pin: #ffb431; --warn: #fbbf62; --warn-bg: #2d2214;
+    --arena: #3a2d36; --stage: #ff6fa8; --t1: #6b2f4b; --t2: #57283f; --t3: #462235; --t5: #36202c;
+    --on-accent: #1a0d14; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #150e13; --surface: #20161d; --ink: #f3e8ef; --muted: #b29fab; --line: #3a2a35;
+  --accent: #ff6fa8; --pin: #ffb431; --warn: #fbbf62; --warn-bg: #2d2214;
+  --arena: #3a2d36; --stage: #ff6fa8; --t1: #6b2f4b; --t2: #57283f; --t3: #462235; --t5: #36202c;
+  --on-accent: #1a0d14; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 640px; margin: 0 auto; padding: 20px 16px 48px; display: grid; gap: 16px; }
+header { display: grid; gap: 6px; }
+.eyebrow { margin: 0; font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .04em; }
+h1 { font-size: 22px; line-height: 1.3; margin: 0; text-wrap: balance; font-weight: 700; }
+.lede { margin: 0; color: var(--muted); font-size: 13.5px; }
+.nb { display: inline-block; }
+h2 { font-size: 15px; margin: 0; font-weight: 700; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+label { font-size: 13px; color: var(--muted); font-weight: 500; }
+textarea, input[type="number"] {
+  width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 16px;
+}
+textarea { resize: vertical; min-height: 64px; }
+textarea:focus, input:focus, button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button { font: inherit; font-weight: 700; cursor: pointer; border-radius: 10px; padding: 10px 16px; border: 1px solid transparent; }
+.btn-primary { background: var(--accent); color: var(--on-accent); }
+.btn-ghost { background: transparent; color: var(--accent); border-color: var(--line); }
+a.btn-ghost { display: inline-block; text-decoration: none; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line); font-weight: 700; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+details { border-top: 1px solid var(--line); padding-top: 10px; }
+summary { cursor: pointer; font-size: 14px; font-weight: 700; color: var(--accent); }
+.manual { display: grid; gap: 10px; margin-top: 12px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { text-align: center; padding: 9px 4px; font-size: 14px; color: var(--ink); cursor: pointer; }
+.seg input:checked + label { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -2px; }
+.fields { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.fields > div { display: grid; gap: 4px; }
+@media (max-width: 420px) { .fields { grid-template-columns: 1fr 1fr; } }
+
+.stage-pick { display: grid; gap: 6px; }
+
+.stub { display: grid; grid-template-columns: auto 1fr; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.stub-side { background: var(--accent); color: var(--on-accent); display: grid; place-items: center; padding: 8px 12px; font-family: var(--font-num); font-weight: 700; font-size: 40px; line-height: 1; text-align: center; }
+.stub-side small { display: block; font-family: var(--font-body); font-size: 11px; font-weight: 700; margin-top: 4px; }
+.stub-main { padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; border-left: 2px dashed var(--line); }
+.stub-item { display: flex; align-items: baseline; gap: 2px; }
+.stub-item b { font-family: var(--font-num); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stub-item span { font-size: 12px; color: var(--muted); }
+
+.map-box { display: grid; gap: 6px; }
+svg.map { width: 100%; height: auto; display: block; max-width: 460px; margin: 0 auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; justify-content: center; font-size: 11.5px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; border: 1px solid var(--line); }
+
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; }
+.fact { background: var(--bg); border-radius: 10px; padding: 8px 10px; display: grid; gap: 2px; }
+.fact dt { font-size: 11.5px; color: var(--muted); }
+.fact dd { margin: 0; font-weight: 700; font-size: 14.5px; }
+.fact dd small { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+.fact.big dd { font-family: var(--font-num); font-size: 28px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.fact.big dd small { font-family: var(--font-body); }
+.notes { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; }
+.alert { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; display: grid; gap: 4px; }
+.alert p { margin: 0; }
+.error { font-weight: 700; }
+
+.history { display: flex; flex-wrap: wrap; gap: 6px; }
+.history button { background: var(--bg); color: var(--ink); border: 1px solid var(--line); font-weight: 500; font-size: 13px; padding: 6px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; white-space: nowrap; }
+.table-wrap { overflow-x: auto; }
+a { color: var(--accent); }
+footer { font-size: 12px; color: var(--muted); display: grid; gap: 6px; }
+footer ul { margin: 0; padding-left: 18px; }
+
+@keyframes pulse { from { r: 6; opacity: .7; } to { r: 20; opacity: 0; } }
+.pulse { animation: pulse 1.6s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .pulse { animation: none; opacity: 0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">2026.11.14 Sat ／ 11.15 Sun　バンテリンドーム ナゴヤ</p>
+    <h1><span class="nb">ラブライブ！フェス</span> <span class="nb">座席ファインダー</span></h1>
+    <p class="lede">スタンド席のチケット表記を貼り付けると、ドームのどのあたりか、ステージまでどれくらいかを図で示します。位置は公開情報からの推定です。</p>
+  </header>
+
+  <section class="card" aria-labelledby="in-title">
+    <h2 id="in-title">チケットの表記を貼り付け</h2>
+    <label for="ticket-text" class="sr">座席表記</label>
+    <textarea id="ticket-text" rows="2" placeholder="例：２ゲート　スタンド３塁側　３８通路　L20列　300番"></textarea>
+    <div class="row">
+      <button type="button" class="btn-primary" id="parse-btn">この席を探す</button>
+      <button type="button" class="btn-ghost" id="clear-btn">クリア</button>
+    </div>
+    <p class="hint">全角・半角どちらでも読み取れます。「1塁側／3塁側」か「R／L」、列、番号があれば位置を出せます。アリーナ席は公演ごとの仮設席のため検索できません。</p>
+
+    <div class="stage-pick">
+      <label id="stage-label">メインステージの位置（仮）</label>
+      <div class="seg" role="radiogroup" aria-labelledby="stage-label">
+        <input type="radio" name="stage" id="stage-center" value="center" checked><label for="stage-center">センター側</label>
+        <input type="radio" name="stage" id="stage-home" value="home"><label for="stage-home">ホーム側</label>
+      </div>
+      <p class="hint">公式サイトの座席イメージ図で確かめて、違っていたら切り替えてください。距離と向きが変わります。</p>
+    </div>
+
+    <details id="manual-box">
+      <summary>手入力で探す</summary>
+      <form class="manual" id="manual-form">
+        <div class="seg" role="radiogroup" aria-label="サイド">
+          <input type="radio" name="side" id="side-r" value="R" checked><label for="side-r">1塁側（R）</label>
+          <input type="radio" name="side" id="side-l" value="L"><label for="side-l">3塁側（L）</label>
+        </div>
+        <div class="fields">
+          <div><label for="row">列</label><input type="number" id="row" inputmode="numeric" min="1" max="61" placeholder="20"></div>
+          <div><label for="seat">番号</label><input type="number" id="seat" inputmode="numeric" min="1" max="800" placeholder="300"></div>
+          <div><label for="passage">通路（任意）</label><input type="number" id="passage" inputmode="numeric" min="11" max="81" placeholder="38"></div>
+          <div><label for="gate">ゲート（任意）</label><input type="number" id="gate" inputmode="numeric" min="1" max="8" placeholder="2"></div>
+        </div>
+        <div class="row"><button type="submit" class="btn-primary">この席を探す</button></div>
+      </form>
+    </details>
+  </section>
+
+  <section class="card" id="result" aria-live="polite"></section>
+
+  <section class="card" id="history-card" hidden>
+    <h2>最近調べた席</h2>
+    <div class="history" id="history"></div>
+    <p class="hint">履歴はこの端末のブラウザにだけ残ります。</p>
+  </section>
+
+  <section class="card">
+    <h2>公演の基本情報</h2>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          <tr><th>Day.1</th><td>11月14日（土）開場 14:30／開演 16:30</td></tr>
+          <tr><th>Day.2</th><td>11月15日（日）開場 13:30／開演 15:30</td></tr>
+          <tr><th>入場</th><td>抽選・先行で取ったチケットは顔認証で入場します。顔写真の事前登録が必要で、同行者の分も必要です。</td></tr>
+          <tr><th>座席</th><td>全席指定。注釈付き指定席・見切れ席は、ステージや映像の一部または全部が見えにくい席です。</td></tr>
+          <tr><th>ペンライト</th><td>使えます。改造したものと、長さ30cm以上のものは使えません。うちわ・ボード・旗などは持ち込めません。</td></tr>
+          <tr><th>物販</th><td>会場北側駐車場で 9:30〜終演後約30分。入場後は物販に戻れません。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="row"><a class="btn-ghost" href="https://www.lovelive-anime.jp/special/live/live_detail.php?p=15th_lovelivefest">公式の公演ページを開く</a></div>
+    <p class="hint">変更が入ることがあるので、最新の内容は公式ページで確かめてください。</p>
+  </section>
+
+  <section class="card">
+    <h2>チケット表記の読み方</h2>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          <tr><th>R／L</th><td>R＝1塁側（ライト側）、L＝3塁側（レフト側）</td></tr>
+          <tr><th>番号</th><td>ホームベース裏が小さく、センターに向かって大きくなります。R側とL側に同じ番号があります。</td></tr>
+          <tr><th>列</th><td>グラウンドに近いほど小さい番号。1〜24列が下段、25〜34列が中段、35〜47列が上段、51〜61列が5階。外野は26列が最前列です。</td></tr>
+          <tr><th>通路</th><td>R側：11〜28（下・中・上段）、51〜61（5階）<br>L側：31〜48（下・中・上段）、71〜81（5階）</td></tr>
+          <tr><th>横通路</th><td>34列と35列の間、47列の後ろ、5階の53列と54列の間に広い通路があります。</td></tr>
+          <tr><th>5階の探し方</th><td>縦に11列しかないので、番号で横位置を合わせてから列を確認すると早いです。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p style="margin:0">ファンが作った非公式のツールで、主催者・会場とは関係ありません。位置・通路・距離は公開情報と実際のチケット例から推定した目安です。ステージ位置は公式の座席イメージ図で確かめてください。アリーナ席と4階席には対応していません。</p>
+    <p style="margin:0">参考にした情報</p>
+    <ul>
+      <li><a href="https://www.lovelive-anime.jp/special/live/live_detail.php?p=15th_lovelivefest">LoveLive! Series 15th Anniversary ラブライブ！フェス 公式ページ</a></li>
+      <li><a href="https://dragons.jp/ticket/sales/seatsearch.html">中日ドラゴンズ 座席検索（スタンド席の正確な位置）</a></li>
+      <li><a href="https://minkara.carview.co.jp/userid/200628/blog/17249772/">ナゴヤドームのゲート・通路・列・座席番号の位置（みんカラ）</a></li>
+    </ul>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var C = 200;
+  var NS = "http://www.w3.org/2000/svg";
+  var HISTORY_KEY = "llfest-seat-history-v1";
+  var STAGE_KEY = "llfest-stage-v1";
+  var M_PER_UNIT = 0.48;   // dome Ø ≈ 187 m ↔ 5F outer ring Ø 392 units
+
+  var TIERS = {
+    lower: { name: "スタンド下段", rows: "1〜24列", r1: 100, r2: 126, from: 1, to: 24 },
+    middle: { name: "スタンド中段", rows: "25〜34列", r1: 128, r2: 148, from: 25, to: 34 },
+    upper: { name: "スタンド上段", rows: "35〜47列", r1: 150, r2: 172, from: 35, to: 47 },
+    f5: { name: "5階", rows: "51〜61列", r1: 176, r2: 196, from: 51, to: 61 }
+  };
+  var OUTFIELD_FROM_DEG = 108;
+  var STAGES = {
+    center: { x: 200, y: 92, face: { x: 0, y: 1 }, name: "センター側" },
+    home: { x: 200, y: 282, face: { x: 0, y: -1 }, name: "ホーム側" }
+  };
+
+  function tierOf(row) {
+    if (row >= 1 && row <= 24) return "lower";
+    if (row >= 25 && row <= 34) return "middle";
+    if (row >= 35 && row <= 47) return "upper";
+    if (row >= 51 && row <= 61) return "f5";
+    return null;
+  }
+  function rowRadius(row) {
+    var t = TIERS[tierOf(row)];
+    return t.r1 + (row - t.from) / Math.max(1, t.to - t.from) * (t.r2 - t.r1);
+  }
+  function seatAngle(tierKey, seat) {
+    if (tierKey === "f5") return Math.min(seat, 660) / 660 * 180;
+    return Math.min(seat, 720) / 720 * 180;
+  }
+  function pt(deg, r, s) {
+    var a = deg * Math.PI / 180;
+    return { x: C + s * r * Math.sin(a), y: C + r * Math.cos(a) };
+  }
+  function f(n) { return Math.round(n * 10) / 10; }
+  function band(t1, t2, r1, r2, s) {
+    var a = pt(t1, r2, s), b = pt(t2, r2, s), c = pt(t2, r1, s), d = pt(t1, r1, s);
+    var sw = s > 0 ? 0 : 1;
+    return "M" + f(a.x) + " " + f(a.y) + " A" + r2 + " " + r2 + " 0 0 " + sw + " " + f(b.x) + " " + f(b.y) +
+      " L" + f(c.x) + " " + f(c.y) + " A" + r1 + " " + r1 + " 0 0 " + (1 - sw) + " " + f(d.x) + " " + f(d.y) + " Z";
+  }
+
+  // calibrated on real ticket examples (16 of 17 exact, all within ±1)
+  function estPassage(tierKey, side, seat) {
+    if (tierKey === "f5") return (side === "R" ? 50 : 70) + Math.min(11, Math.max(1, Math.round((seat + 15) / 60)));
+    return (side === "R" ? 10 : 30) + Math.min(18, Math.max(1, Math.round((seat + 20) / 40)));
+  }
+  function passageInfo(n) {
+    if (n >= 11 && n <= 28) return { side: "R", f5: false };
+    if (n >= 31 && n <= 48) return { side: "L", f5: false };
+    if (n >= 51 && n <= 61) return { side: "R", f5: true };
+    if (n >= 71 && n <= 81) return { side: "L", f5: true };
+    return null;
+  }
+  function areaOf(tierKey, side, seat, deg) {
+    var sideName = side === "R" ? "1塁側" : "3塁側";
+    if (deg < 25) return "ホームベース裏";
+    if (deg < 75) return sideName + "・ホーム寄り";
+    if (deg < 125) return sideName + "・真ん中あたり";
+    if (deg < 160) return sideName + "・センター寄り";
+    return "センター裏";
+  }
+  function stageRelation(p, stageKey) {
+    var st = STAGES[stageKey];
+    var vx = p.x - st.x, vy = p.y - st.y;
+    var dist = Math.sqrt(vx * vx + vy * vy) * M_PER_UNIT;
+    var cos = (vx * st.face.x + vy * st.face.y) / Math.max(1e-6, Math.sqrt(vx * vx + vy * vy));
+    var ang = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+    var dir;
+    if (ang < 30) dir = "正面";
+    else if (ang < 65) dir = "斜め前";
+    else if (ang < 100) dir = "ほぼ真横";
+    else dir = "ステージの横〜後ろ側";
+    return { dist: dist, angle: ang, dir: dir };
+  }
+  function binoculars(d, tierKey) {
+    if (d < 35) return { x: "なくても楽しめる距離", note: "表情を見たいなら4〜6倍" };
+    if (d < 70) return { x: "6〜8倍", note: "表情まで見たいときに" };
+    if (d < 110) return { x: "8〜10倍", note: "表情まで見たいときに" };
+    return { x: "10〜12倍", note: "手ぶれを抑える防振タイプがあると安心" };
+  }
+  var VIEW_NOTES = {
+    lower: "アリーナより一段高い位置から見下ろせる段です。花道やトロッコなど、ステージの外での動きも追いやすいです。",
+    middle: "近さと見渡しやすさのバランスがよい段です。34列の後ろに横通路があります。",
+    upper: "高さがあり、照明や演出の全体像をつかみやすい段です。",
+    f5: "天井に近い高所です。演出全体はきれいに見えますが、キャストを見るには双眼鏡とスクリーンが頼りになります。"
+  };
+
+  function normalize(s) {
+    return String(s || "")
+      .replace(/[０-９Ａ-Ｚａ-ｚ]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+      .replace(/　/g, " ");
+  }
+  function parseTicket(text) {
+    var t = normalize(text);
+    var m, res = {};
+    if (/アリーナ/.test(t)) res.arena = true;
+    if ((m = t.match(/(\d+)\s*ゲート/))) res.gate = +m[1];
+    if ((m = t.match(/(\d+)\s*通路/))) res.passage = +m[1];
+    if ((m = t.match(/(\d+)\s*階/))) res.floor = +m[1];
+    if ((m = t.match(/(\d+)\s*列/))) res.row = +m[1];
+    if ((m = t.match(/(\d+)\s*番/))) res.seat = +m[1];
+    if (/[Rr]\s*\d+\s*列/.test(t) || /(1|一)塁/.test(t) || /ライト/.test(t) || /R側/.test(t)) res.side = "R";
+    if (/[Ll]\s*\d+\s*列/.test(t) || /(3|三)塁/.test(t) || /レフト/.test(t) || /L側/.test(t)) res.side = res.side === "R" ? "conflict" : "L";
+    if ((!res.side || res.side === "conflict") && res.passage && passageInfo(res.passage)) res.side = passageInfo(res.passage).side;
+    return res;
+  }
+
+  function el(name, attrs, parent) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function buildMap(q, stageKey) {
+    var svg = el("svg", { viewBox: "0 0 400 400", class: "map", role: "img" });
+    el("title", {}, svg).textContent = "ドーム図：ステージと推定位置";
+    el("circle", { cx: C, cy: C, r: 127, fill: "var(--arena)" }, svg);
+    [1, -1].forEach(function (s) {
+      el("path", { d: band(0, OUTFIELD_FROM_DEG, TIERS.lower.r1, TIERS.lower.r2, s), fill: "var(--t1)" }, svg);
+      el("path", { d: band(0, 180, TIERS.middle.r1, TIERS.middle.r2, s), fill: "var(--t2)" }, svg);
+      el("path", { d: band(0, 180, TIERS.upper.r1, TIERS.upper.r2, s), fill: "var(--t3)" }, svg);
+      el("path", { d: band(0, 175, TIERS.f5.r1, TIERS.f5.r2, s), fill: "var(--t5)" }, svg);
+    });
+    // stage
+    var st = STAGES[stageKey];
+    el("rect", { x: st.x - 42, y: st.y - 9, width: 84, height: 18, rx: 3, fill: "var(--stage)" }, svg);
+    var stl = el("text", { x: st.x, y: st.y + 4, "text-anchor": "middle", "font-size": 10, "font-weight": 700, fill: "var(--on-accent)", "font-family": "Zen Kaku Gothic New, sans-serif" }, svg);
+    stl.textContent = "STAGE（仮）";
+    var al = el("text", { x: 200, y: stageKey === "center" ? 200 : 200, "text-anchor": "middle", "font-size": 10, "font-weight": 700, fill: "var(--muted)", "font-family": "Zen Kaku Gothic New, sans-serif" }, svg);
+    al.textContent = "アリーナ（配置は公演ごと）";
+
+    var est = q ? q.estPassage : null;
+    [1, -1].forEach(function (s) {
+      for (var p = 1; p <= 18; p++) drawPassage(svg, (s > 0 ? 10 : 30) + p, (40 * p - 20) / 720 * 180, 149, s, est === (s > 0 ? 10 : 30) + p);
+      for (var p5 = 1; p5 <= 11; p5++) drawPassage(svg, (s > 0 ? 50 : 70) + p5, (60 * p5 - 15) / 660 * 180, 186, s, est === (s > 0 ? 50 : 70) + p5);
+    });
+    lbl(svg, 262, 236, "1塁側 R");
+    lbl(svg, 138, 236, "3塁側 L");
+    lbl(svg, 200, stageKey === "center" ? 290 : 118, stageKey === "center" ? "ホーム側" : "センター側");
+
+    if (q) {
+      el("line", { x1: q.x, y1: q.y, x2: st.x, y2: st.y, stroke: "var(--pin)", "stroke-width": 1.5, "stroke-dasharray": "4 3" }, svg);
+      el("circle", { cx: q.x, cy: q.y, r: 6, fill: "none", stroke: "var(--pin)", "stroke-width": 2, class: "pulse" }, svg);
+      el("circle", { cx: q.x, cy: q.y, r: 6.5, fill: "var(--pin)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    }
+    return svg;
+  }
+  function drawPassage(svg, n, deg, r, s, hi) {
+    var p = pt(deg, r, s);
+    el("text", {
+      x: f(p.x), y: f(p.y + 2.2), "text-anchor": "middle", "font-size": hi ? 8.5 : 6, "font-weight": hi ? 700 : 500,
+      "font-family": "Barlow Condensed, sans-serif", fill: hi ? "var(--accent)" : "var(--muted)",
+      stroke: "var(--surface)", "stroke-width": hi ? 2.4 : 1.6, "paint-order": "stroke"
+    }, svg).textContent = n;
+  }
+  function lbl(svg, x, y, text) {
+    el("text", { x: x, y: y, "text-anchor": "middle", "font-size": 10, "font-weight": 700, fill: "var(--muted)", "font-family": "Zen Kaku Gothic New, sans-serif" }, svg).textContent = text;
+  }
+
+  var resultEl = document.getElementById("result");
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function currentStage() { return document.getElementById("stage-home").checked ? "home" : "center"; }
+
+  function locate(input) {
+    var errors = [], warns = [];
+    if (input.arena) return { arena: true, errors: ["アリーナ席は公演ごとに並べ方が変わる仮設の席なので、番号から位置を決められません。会場の掲示や公式の座席イメージ図、スタッフの案内で確かめてください。", "スタンド席（1塁側・3塁側の固定席）なら、このページで探せます。"] };
+    var side = input.side, row = input.row, seat = input.seat;
+    if (side === "conflict") { errors.push("1塁側（R）と3塁側（L）の両方が含まれています。どちらか一方にしてください。"); side = null; }
+    if (!side) errors.push("1塁側（R）か3塁側（L）かが読み取れませんでした。「1塁側」「R」などを含めてください。");
+    if (!row) errors.push("列が読み取れませんでした。「20列」のように入力してください。");
+    if (!seat) errors.push("番号が読み取れませんでした。「300番」のように入力してください。");
+    var tierKey = row ? tierOf(row) : null;
+    if (row && !tierKey) errors.push(row + "列という列はありません。スタンドの列は1〜47列か51〜61列です。");
+    if (errors.length) return { errors: errors };
+
+    var deg = seatAngle(tierKey, seat);
+    var s = side === "R" ? 1 : -1;
+    var p = pt(deg, rowRadius(row), s);
+    var ep = estPassage(tierKey, side, seat);
+
+    if (tierKey !== "f5" && seat > 720) warns.push("番号が大きすぎるようです。下段〜上段の番号はおおむね700番前後までです。");
+    if (tierKey === "f5" && seat > 660) warns.push("番号が大きすぎるようです。5階の番号はおおむね650番前後までです。");
+    if (tierKey !== "f5" && deg > OUTFIELD_FROM_DEG && row < 26) warns.push("外野側は26列が最前列です。列か番号をもう一度確かめてください。");
+    if (input.floor) {
+      if (input.floor === 5 && tierKey !== "f5") warns.push("「5階」とありますが、" + row + "列は5階の列（51〜61列）ではありません。");
+      if (input.floor !== 5 && input.floor !== 4 && tierKey === "f5") warns.push(input.floor + "階とありますが、" + row + "列は5階の列です。");
+    }
+    if (input.passage) {
+      var pi = passageInfo(input.passage);
+      if (!pi) warns.push(input.passage + "通路という通路は見つかりません。");
+      else {
+        if (pi.side !== side) warns.push(input.passage + "通路は" + (pi.side === "R" ? "1塁側（R）" : "3塁側（L）") + "の通路です。サイドを確かめてください。");
+        if (pi.f5 !== (tierKey === "f5")) warns.push(input.passage + "通路は" + (pi.f5 ? "5階" : "下段〜上段") + "の通路です。列と合っているか確かめてください。");
+        else if (pi.side === side && Math.abs(input.passage - ep) > 1) warns.push("チケットの" + input.passage + "通路と、番号からの推定（" + ep + "通路）が離れています。図の位置は番号から出しています。");
+      }
+    }
+    return {
+      side: side, row: row, seat: seat, gate: input.gate, passage: input.passage, floor: input.floor,
+      tierKey: tierKey, deg: deg, x: f(p.x), y: f(p.y),
+      estPassage: input.passage && passageInfo(input.passage) ? input.passage : ep, calcPassage: ep,
+      area: areaOf(tierKey, side, seat, deg), warns: warns
+    };
+  }
+
+  var lastQ = null, lastTitle = null;
+  function render(q, title) {
+    lastQ = q; lastTitle = title || null;
+    resultEl.innerHTML = "";
+    if (q.errors) {
+      resultEl.innerHTML = "<h2>" + (q.arena ? "アリーナ席は検索できません" : "座席を特定できませんでした") + '</h2><div class="alert">' +
+        q.errors.map(function (e) { return '<p class="error">' + esc(e) + "</p>"; }).join("") + "</div>";
+      return;
+    }
+    var stageKey = currentStage();
+    var rel = stageRelation(q, stageKey);
+    var bino = binoculars(rel.dist, q.tierKey);
+    var tier = TIERS[q.tierKey];
+    var dist5 = Math.max(10, Math.round(rel.dist / 5) * 5);
+
+    var stub = '<div class="stub"><div class="stub-side">' + q.side + "<small>" + (q.side === "R" ? "1塁側" : "3塁側") + "</small></div>" +
+      '<div class="stub-main">' +
+      (q.gate ? '<div class="stub-item"><b>' + q.gate + "</b><span>ゲート</span></div>" : "") +
+      (q.passage ? '<div class="stub-item"><b>' + q.passage + "</b><span>通路</span></div>" : "") +
+      '<div class="stub-item"><b>' + q.row + "</b><span>列</span></div>" +
+      '<div class="stub-item"><b>' + q.seat + "</b><span>番</span></div></div></div>";
+
+    var passageFact = q.passage
+      ? "<dd>" + q.passage + "通路<small>チケット記載。番号からの推定は" + q.calcPassage + "通路</small></dd>"
+      : "<dd>" + q.calcPassage + "通路あたり<small>前後1通路ずれることがあります</small></dd>";
+
+    var notes = [VIEW_NOTES[q.tierKey]];
+    if (rel.angle >= 100) notes.push("ステージの横から後ろ寄りの席です。注釈付き指定席・見切れ席として売られた範囲に近い可能性があり、メインステージやスクリーンが見えにくいことがあります。");
+    notes.push(q.tierKey === "f5" ? "5階は縦に11列だけです。通路を出たら番号で横位置を合わせ、それから列を確かめると早く着きます。" : "通路を出たら、まず列を確かめてから番号を探すと早く着きます。");
+
+    resultEl.innerHTML =
+      "<h2 id=\"result-title\">" + esc(title || "この席はここ") + "</h2>" + stub +
+      '<div class="map-box" id="map-slot"></div>' +
+      '<dl class="facts">' +
+      '<div class="fact big"><dt>ステージまで</dt><dd>約' + dist5 + "m<small>水平距離の目安（ステージ" + STAGES[stageKey].name + "の場合）</small></dd></div>" +
+      '<div class="fact"><dt>ステージの見え方</dt><dd>' + esc(rel.dir) + "<small>ステージ正面から約" + Math.round(rel.angle / 5) * 5 + "°</small></dd></div>" +
+      '<div class="fact"><dt>段</dt><dd>' + esc(tier.name) + "<small>" + tier.rows + "の" + (q.row - tier.from + 1) + "列目</small></dd></div>" +
+      '<div class="fact"><dt>エリア</dt><dd>' + esc(q.area) + "</dd></div>" +
+      '<div class="fact"><dt>通路</dt>' + passageFact + "</div>" +
+      '<div class="fact"><dt>双眼鏡の目安</dt><dd>' + esc(bino.x) + "<small>" + esc(bino.note) + "</small></dd></div>" +
+      "</dl>" +
+      '<ul class="notes">' + notes.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("") + "</ul>" +
+      (q.warns.length ? '<div class="alert">' + q.warns.map(function (w) { return "<p>" + esc(w) + "</p>"; }).join("") + "</div>" : "") +
+      '<div class="row"><button type="button" class="btn-ghost" id="copy-btn">結果をコピー</button><span class="hint" id="copy-msg"></span></div>';
+
+    var slot = document.getElementById("map-slot");
+    slot.appendChild(buildMap(q, stageKey));
+    var lg = document.createElement("div");
+    lg.className = "legend";
+    lg.innerHTML = '<span><i style="background:var(--t1)"></i>下段</span><span><i style="background:var(--t2)"></i>中段</span><span><i style="background:var(--t3)"></i>上段</span><span><i style="background:var(--t5)"></i>5階</span><span><i style="background:var(--stage)"></i>ステージ（仮）</span><span><i style="background:var(--pin)"></i>この席（推定）</span>';
+    slot.appendChild(lg);
+    document.getElementById("copy-btn").addEventListener("click", function () {
+      var text = "ラブライブ！フェス バンテリンドーム " + (q.side === "R" ? "1塁側" : "3塁側") + " " + q.side + q.row + "列 " + q.seat + "番" +
+        (q.passage ? "（" + q.passage + "通路）" : "") + "\n" + tier.name + "・" + q.area + "／ステージまで約" + dist5 + "m（" + rel.dir + "）";
+      var msg = document.getElementById("copy-msg");
+      try {
+        navigator.clipboard.writeText(text).then(function () { msg.textContent = "コピーしました"; }, function () { msg.textContent = "コピーできませんでした"; });
+      } catch (e) { msg.textContent = "コピーできませんでした"; }
+    });
+  }
+
+  function loadHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch (e) { return []; } }
+  function saveHistory(q) {
+    var item = { side: q.side, row: q.row, seat: q.seat, passage: q.passage || null, gate: q.gate || null, floor: q.floor || null };
+    var list = loadHistory().filter(function (h) { return !(h.side === item.side && h.row === item.row && h.seat === item.seat); });
+    list.unshift(item);
+    list = list.slice(0, 8);
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); } catch (e) {}
+    renderHistory(list);
+  }
+  function renderHistory(list) {
+    var card = document.getElementById("history-card"), box = document.getElementById("history");
+    list = list || loadHistory();
+    if (!list.length) { card.hidden = true; return; }
+    card.hidden = false;
+    box.innerHTML = "";
+    list.forEach(function (h) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = h.side + h.row + "列 " + h.seat + "番" + (h.passage ? "・" + h.passage + "通路" : "");
+      b.addEventListener("click", function () { run(h, false); });
+      box.appendChild(b);
+    });
+  }
+
+  function run(input, remember) {
+    var q = locate(input);
+    render(q);
+    if (!q.errors && remember) saveHistory(q);
+    if (!q.errors) fillManual(q);
+  }
+  function fillManual(q) {
+    document.getElementById(q.side === "R" ? "side-r" : "side-l").checked = true;
+    document.getElementById("row").value = q.row;
+    document.getElementById("seat").value = q.seat;
+    document.getElementById("passage").value = q.passage || "";
+    document.getElementById("gate").value = q.gate || "";
+  }
+
+  document.getElementById("parse-btn").addEventListener("click", function () {
+    run(parseTicket(document.getElementById("ticket-text").value), true);
+    resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  document.getElementById("clear-btn").addEventListener("click", function () {
+    var ta = document.getElementById("ticket-text"); ta.value = ""; ta.focus();
+  });
+  document.getElementById("manual-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var num = function (id) { var v = parseInt(normalize(document.getElementById(id).value), 10); return isNaN(v) ? undefined : v; };
+    run({ side: document.getElementById("side-r").checked ? "R" : "L", row: num("row"), seat: num("seat"), passage: num("passage"), gate: num("gate") }, true);
+    resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  ["stage-center", "stage-home"].forEach(function (id) {
+    document.getElementById(id).addEventListener("change", function () {
+      try { localStorage.setItem(STAGE_KEY, currentStage()); } catch (e) {}
+      if (lastQ) render(lastQ, lastTitle);
+    });
+  });
+
+  window.__seat = { parseTicket: parseTicket, locate: locate, stageRelation: stageRelation };
+
+  try { if (localStorage.getItem(STAGE_KEY) === "home") document.getElementById("stage-home").checked = true; } catch (e) {}
+  var EXAMPLE = "２ゲート　スタンド３塁側　３８通路　L20列　300番";
+  render(locate(parseTicket(EXAMPLE)), "表示例（" + EXAMPLE.replace(/　/g, " ") + "）");
+  renderHistory();
+})();
+</script>
+</body>
+</html>
