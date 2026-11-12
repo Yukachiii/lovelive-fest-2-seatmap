@@ -85,7 +85,8 @@ a.btn-ghost { display: inline-block; text-decoration: none; padding: 10px 16px; 
 
 details { border-top: 1px solid var(--line); padding-top: 10px; }
 summary { cursor: pointer; font-size: 14px; font-weight: 700; color: var(--accent); }
-.manual { display: grid; gap: 10px; margin-top: 12px; }
+.manual { display: grid; gap: 10px; }
+details .manual { margin-top: 12px; }
 .seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
 .seg label { text-align: center; padding: 9px 4px; font-size: 14px; color: var(--ink); cursor: pointer; }
@@ -142,36 +143,37 @@ footer ul { margin: 0; padding-left: 18px; }
   <header>
     <p class="eyebrow">2026.11.14 Sat ／ 11.15 Sun　バンテリンドーム ナゴヤ</p>
     <h1><span class="nb">ラブライブ！フェス</span> <span class="nb">座席ファインダー</span></h1>
-    <p class="lede">スタンド席のチケット表記を貼り付けると、ドームのどのあたりか、ステージまでどれくらいかを、公式のSTAGE MAPに重ねて示します。位置は公開情報からの推定です。</p>
+    <p class="lede">スタンド席の列と番号を入力すると、ドームのどのあたりか、ステージまでどれくらいかを、公式のSTAGE MAPに重ねて示します。位置は公開情報からの推定です。</p>
   </header>
 
   <section class="card" aria-labelledby="in-title">
-    <h2 id="in-title">チケットの表記を貼り付け</h2>
-    <label for="ticket-text" class="sr">座席表記</label>
-    <textarea id="ticket-text" rows="2" placeholder="例：２ゲート　スタンド３塁側　３８通路　L20列　300番"></textarea>
-    <div class="row">
-      <button type="button" class="btn-primary" id="parse-btn">この席を探す</button>
-      <button type="button" class="btn-ghost" id="clear-btn">クリア</button>
-    </div>
-    <p class="hint">全角・半角どちらでも読み取れます。「1塁側／3塁側」か「R／L」、列、番号があれば位置を出せます。アリーナ席は公演ごとの仮設席のため検索できません。</p>
+    <h2 id="in-title">チケットの座席を入力</h2>
+    <form class="manual" id="manual-form">
+      <div class="seg" role="radiogroup" aria-label="サイド">
+        <input type="radio" name="side" id="side-r" value="R" checked><label for="side-r">1塁側（R）</label>
+        <input type="radio" name="side" id="side-l" value="L"><label for="side-l">3塁側（L）</label>
+      </div>
+      <div class="fields">
+        <div><label for="row">列</label><input type="number" id="row" inputmode="numeric" min="1" max="61" placeholder="20" required></div>
+        <div><label for="seat">番号</label><input type="number" id="seat" inputmode="numeric" min="1" max="800" placeholder="300" required></div>
+        <div><label for="passage">通路（任意）</label><input type="number" id="passage" inputmode="numeric" min="11" max="81" placeholder="38"></div>
+        <div><label for="gate">ゲート（任意）</label><input type="number" id="gate" inputmode="numeric" min="1" max="8" placeholder="2"></div>
+      </div>
+      <div class="row"><button type="submit" class="btn-primary">この席を探す</button></div>
+    </form>
+    <p class="hint">5階席は、列に51〜61の番号を入れてください。アリーナ席は公演ごとの仮設席のため検索できません。ステージ位置は公式のSTAGE MAP（イメージ図）をもとにしていて、距離は目安です。</p>
 
-    <p class="hint">ステージ位置は公式のSTAGE MAP（イメージ図）をもとにしています。図の寸法は実際とは異なり、距離は目安です。</p>
-
-    <details id="manual-box">
-      <summary>手入力で探す</summary>
-      <form class="manual" id="manual-form">
-        <div class="seg" role="radiogroup" aria-label="サイド">
-          <input type="radio" name="side" id="side-r" value="R" checked><label for="side-r">1塁側（R）</label>
-          <input type="radio" name="side" id="side-l" value="L"><label for="side-l">3塁側（L）</label>
+    <details id="paste-box">
+      <summary>チケットの表記を貼り付けて読み取る</summary>
+      <div class="manual">
+        <label for="ticket-text">座席表記</label>
+        <textarea id="ticket-text" rows="2" placeholder="例：２ゲート　スタンド３塁側　３８通路　L20列　300番"></textarea>
+        <div class="row">
+          <button type="button" class="btn-primary" id="parse-btn">読み取って探す</button>
+          <button type="button" class="btn-ghost" id="clear-btn">クリア</button>
         </div>
-        <div class="fields">
-          <div><label for="row">列</label><input type="number" id="row" inputmode="numeric" min="1" max="61" placeholder="20"></div>
-          <div><label for="seat">番号</label><input type="number" id="seat" inputmode="numeric" min="1" max="800" placeholder="300"></div>
-          <div><label for="passage">通路（任意）</label><input type="number" id="passage" inputmode="numeric" min="11" max="81" placeholder="38"></div>
-          <div><label for="gate">ゲート（任意）</label><input type="number" id="gate" inputmode="numeric" min="1" max="8" placeholder="2"></div>
-        </div>
-        <div class="row"><button type="submit" class="btn-primary">この席を探す</button></div>
-      </form>
+        <p class="hint">全角・半角どちらでも読み取れます。読み取った内容は上の入力欄にも入ります。</p>
+      </div>
     </details>
   </section>
 
