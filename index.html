@@ -140,8 +140,8 @@ footer ul { margin: 0; padding-left: 18px; }
 .seg.three { grid-template-columns: 1fr 1fr 1fr; }
 .x-btn { display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; border-radius: 12px; padding: 14px 16px; font-weight: 700; font-size: 16px; background: #0f1419; color: #ffffff; }
 .x-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.share-preview { width: 100%; max-width: 420px; margin: 0 auto; display: block; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); aspect-ratio: 4 / 5; }
-#share-text { min-height: 120px; font-size: 15px; }
+.share-preview { width: 100%; margin: 0 auto; display: block; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); aspect-ratio: 1200 / 630; }
+#share-text { min-height: 156px; font-size: 15px; }
 .copyright { margin: 0; text-align: center; font-size: 13px; color: var(--muted); padding-top: 8px; border-top: 1px solid var(--line); }
 @keyframes pulse { from { r: 6; opacity: .7; } to { r: 20; opacity: 0; } }
 .pulse { animation: pulse 1.6s ease-out infinite; }
@@ -199,7 +199,7 @@ footer ul { margin: 0; padding-left: 18px; }
   <section class="card" id="result" aria-live="polite"></section>
 
   <section class="card" id="share-card" hidden aria-labelledby="share-title">
-    <h2 id="share-title">画像つきで共有する</h2>
+    <h2 id="share-title">Xで共有する</h2>
     <div class="stage-day">
       <label id="day-label">公演日</label>
       <div class="seg three" role="radiogroup" aria-labelledby="day-label">
@@ -217,15 +217,16 @@ footer ul { margin: 0; padding-left: 18px; }
         <label><input type="checkbox" id="hide-seat" checked> 番号</label>
       </div>
     </div>
-    <p class="hint" id="hide-hint">隠した項目は、画像にも投稿文にも入りません。列か番号を隠すと、図のピンの代わりに「だいたいこの辺」の丸で表示します。</p>
-    <img id="share-img" class="share-preview" alt="共有用の画像のプレビュー">
+    <p class="hint" id="hide-hint">隠した項目は投稿文に入りません。投稿に付く画像は、通路とスタンドの段ごとの「だいたいこの辺」の画像なので、列・番号・ゲートは入りません。</p>
+    <p class="hint" style="margin-bottom:-6px">投稿に表示される画像</p>
+    <img id="share-img" class="share-preview" alt="投稿に表示されるエリア画像のプレビュー">
     <div>
       <label for="share-text">投稿文</label>
       <textarea id="share-text"></textarea>
       <div class="row" style="margin-top:6px"><button type="button" class="btn-ghost" id="share-reset" style="padding:6px 12px;font-size:13px">投稿文を作り直す</button></div>
     </div>
     <a class="btn-primary x-btn" id="share-x" href="https://x.com/intent/post" target="_blank" rel="noopener">Xで共有（画像つき）</a>
-    <p class="hint" id="share-msg">スマホでは共有画面が開くので「X」を選んでください。画像と投稿文が入った状態で投稿画面が開きます。パソコンでは画像を保存してからXの投稿画面を開くので、保存した画像を添付してください。</p>
+    <p class="hint" id="share-msg">Xの投稿画面が、投稿文が入った状態で開きます（スマホではXアプリが開きます）。投稿すると、最後の行のリンクにエリアの画像がカードで表示されます。</p>
     <div class="row"><button type="button" class="btn-ghost" id="share-copy" style="padding:6px 12px;font-size:13px">投稿文をコピー</button><span class="hint">Xに投稿文が入らなかったときに</span></div>
   </section>
 
@@ -479,8 +480,11 @@ footer ul { margin: 0; padding-left: 18px; }
       var rad = 24;
       el("line", { x1: f(c.x), y1: f(c.y), x2: Math.max(STAGE.x1, Math.min(STAGE.x2, c.x)), y2: STAGE.y2, stroke: "var(--pin)", "stroke-width": 1.5, "stroke-dasharray": "4 3" }, svg);
       el("circle", { cx: f(c.x), cy: f(c.y), r: rad, fill: "var(--pin)", "fill-opacity": 0.28, stroke: "var(--pin)", "stroke-width": 3 }, svg);
-      var ly = c.y < 200 ? c.y + rad + 13 : c.y - rad - 6;
-      el("text", { x: f(c.x), y: f(ly), "text-anchor": "middle", "font-size": 12, "font-weight": 700, fill: "var(--pin-ink)", stroke: "var(--surface)", "stroke-width": 3, "paint-order": "stroke", "font-family": "Zen Kaku Gothic New, sans-serif" }, svg).textContent = "だいたいこの辺";
+      // label outside the ring at top/bottom; above the circle on the sides
+      var lp = Math.abs(Math.sin(dd * Math.PI / 180)) > 0.75 ? { x: c.x, y: c.y - rad - 10 } : pt(dd, rr + rad + 16, sgn);
+      if (lp.y < 16) lp = { x: c.x, y: c.y + rad + 12 };
+      if (lp.y > 392) lp = { x: c.x, y: c.y - rad - 10 };
+      el("text", { x: f(Math.max(48, Math.min(352, lp.x))), y: f(lp.y + 4), "text-anchor": "middle", "font-size": 12, "font-weight": 700, fill: "var(--pin-ink)", stroke: "var(--surface)", "stroke-width": 3, "paint-order": "stroke", "font-family": "Zen Kaku Gothic New, sans-serif" }, svg).textContent = "だいたいこの辺";
     } else if (q) {
       var tx = Math.max(STAGE.x1, Math.min(STAGE.x2, q.x)), ty = STAGE.y2;
       el("line", { x1: q.x, y1: q.y, x2: tx, y2: ty, stroke: "var(--pin)", "stroke-width": 1.5, "stroke-dasharray": "4 3" }, svg);
@@ -762,7 +766,7 @@ footer ul { margin: 0; padding-left: 18px; }
   };
   var JP = '"Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", sans-serif';
   var NUM = '"Barlow Condensed", "Zen Kaku Gothic New", sans-serif';
-  var share = { q: null, blob: null, url: null, dirty: false, seq: 0 };
+  var share = { q: null, dirty: false };
   var $ = function (id) { return document.getElementById(id); };
 
   function shareOpts() {
@@ -788,18 +792,70 @@ footer ul { margin: 0; padding-left: 18px; }
     parts.push(main + (rs ? " " + rs.trim() : ""));
     return parts.join(" ");
   }
-  function pageUrl() { return /^https?:/.test(location.protocol) ? location.origin + location.pathname : ""; }
-  function buildShareText(q, o) {
-    if (q.arena) {
-      var ua = pageUrl();
-      return "ラブライブ！フェス" + (o.day ? " Day." + o.day : "") + "の座席はこちら！\n" + ZONES[q.upg].name +
-        "\nメインステージまで" + rangeText(zoneRange(q.upg, STAGE)) + "\n#ラフェス #ラフェス座席" + (ua ? "\n" + ua : "");
+  var SITE = "https://yukachiii.github.io/lovelive-fest-2-seatmap/";
+  function siteBase() {
+    if (/^https?:/.test(location.protocol)) return location.href.replace(/[#?].*$/, "").replace(/[^\/]*$/, "");
+    return SITE;
+  }
+
+  // ---------- area cards (static pages with OGP images, one per passage × stand section, plus arena zones)
+  var TIER_CODE = { lower: "f", middle: "m", upper: "b", f5: "5" };
+  var CODE_TIER = { f: "lower", m: "middle", b: "upper", "5": "f5" };
+  var TIER_MID_ROW = { lower: 12, middle: 30, upper: 41, f5: 56 };
+  function passageDeg(n) {
+    var pi = passageInfo(n);
+    var idx = n - (pi.f5 ? (pi.side === "R" ? 50 : 70) : (pi.side === "R" ? 10 : 30));
+    return pi.f5 ? (60 * idx - 15) / 660 * 180 : (40 * idx - 20) / 720 * 180;
+  }
+  function areaIdOf(q) {
+    if (q.arena) return "arena-" + q.upg;
+    var n = q.estPassage, pi = passageInfo(n);
+    if (!pi || pi.side !== q.side || pi.f5 !== (q.tierKey === "f5")) n = q.calcPassage;
+    var tk = q.tierKey;
+    if (tk === "lower" && passageDeg(n) > OUTFIELD_FROM_DEG) tk = "middle";
+    return q.side + n + "-" + TIER_CODE[tk];
+  }
+  function allAreaIds() {
+    var ids = [];
+    ["L", "R"].forEach(function (side) {
+      for (var p = 1; p <= 18; p++) {
+        var n = (side === "R" ? 10 : 30) + p;
+        ["lower", "middle", "upper"].forEach(function (tk) {
+          if (tk === "lower" && passageDeg(n) > OUTFIELD_FROM_DEG) return;
+          ids.push(side + n + "-" + TIER_CODE[tk]);
+        });
+      }
+      for (var p5 = 1; p5 <= 11; p5++) ids.push(side + ((side === "R" ? 50 : 70) + p5) + "-5");
+    });
+    ["S", "A", "none"].forEach(function (u) { ids.push("arena-" + u); });
+    return ids;
+  }
+  function areaInfo(id) {
+    var m = id.match(/^arena-(S|A|none)$/);
+    if (m) {
+      var z = ZONES[m[1]];
+      return { id: id, q: { arena: true, upg: m[1] }, title: "アリーナ・" + z.name,
+        sub: m[1] === "none" ? "アップグレードエリアの後ろの一般エリア" : m[1] === "S" ? "メインステージとセンターステージの前" : "S席の左右",
+        dist: "メインステージまで" + rangeText(zoneRange(m[1], STAGE)) };
     }
-    var fx = shareFacts(q, o);
+    m = id.match(/^([LR])(\d+)-([fmb5])$/);
+    var side = m[1], n = +m[2], tk = CODE_TIER[m[3]], T = TIERS[tk];
+    var deg = passageDeg(n), row = TIER_MID_ROW[tk];
+    var pp = pt(deg, rowRadius(row), side === "R" ? 1 : -1);
+    var q = { side: side, row: row, tierKey: tk, deg: deg, x: f(pp.x), y: f(pp.y) };
+    var rel = stageRelation(q);
+    return { id: id, q: q, title: (tk === "f5" ? "5階" : "") + "スタンド" + areaOf(tk, side, 0, deg),
+      sub: T.name + "（" + T.rows + "）",
+      dist: "メインステージまで約" + Math.max(10, Math.round(rel.dist / 10) * 10) + "m・" + rel.dir };
+  }
+  function cardUrl(q) { return siteBase() + "s/" + areaIdOf(q) + ".html"; }
+
+  function buildShareText(q, o) {
     var day = o.day ? " Day." + o.day : "";
-    var url = pageUrl();
-    return "ラブライブ！フェス" + day + "の座席はこちら！\n" + seatPhrase(q, o) +
-      "\nメインステージまで約" + fx.dist + "m（" + fx.dir + "）\n#ラフェス #ラフェス座席" + (url ? "\n" + url : "");
+    var body;
+    if (q.arena) body = ZONES[q.upg].name + "\nメインステージまで" + rangeText(zoneRange(q.upg, STAGE));
+    else { var fx = shareFacts(q, o); body = seatPhrase(q, o) + "\nメインステージまで約" + fx.dist + "m（" + fx.dir + "）"; }
+    return "ラブライブ！フェス" + day + "の座席はこちら！\n" + body + "\n#ラフェス #ラフェス座席\n" + cardUrl(q);
   }
   function rr(ctx, x, y, w, h, r) {
     ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
@@ -817,100 +873,39 @@ footer ul { margin: 0; padding-left: 18px; }
   function fitFont(ctx, text, weight, size, family, maxW) {
     do { ctx.font = weight + " " + size + "px " + family; size -= 2; } while (ctx.measureText(text).width > maxW && size > 12);
   }
-  function makeShareImage(q, o) {
+  // 1200×630 card image for one area (used by tools/build_og.py)
+  function makeOgImage(id) {
+    var a = areaInfo(id);
     var fontsReady = (document.fonts && document.fonts.load) ? Promise.all([
-      document.fonts.load('700 56px "Zen Kaku Gothic New"'), document.fonts.load('500 28px "Zen Kaku Gothic New"'),
-      document.fonts.load('700 80px "Barlow Condensed"')]).catch(function () {}) : Promise.resolve();
+      document.fonts.load('700 56px "Zen Kaku Gothic New"'), document.fonts.load('500 28px "Zen Kaku Gothic New"')]).catch(function () {}) : Promise.resolve();
     return fontsReady.then(function () {
-      return loadImage("data:image/svg+xml;charset=utf-8," + encodeURIComponent(mapSvgString(q, o)));
+      return loadImage("data:image/svg+xml;charset=utf-8," + encodeURIComponent(mapSvgString(a.q, a.q.arena ? {} : { approx: true, hideRow: true, hidePassage: true })));
     }).then(function (mapImg) {
-      var W = 1080, H = 1350, cv = document.createElement("canvas");
+      var W = 1200, H = 630, cv = document.createElement("canvas");
       cv.width = W; cv.height = H;
       var ctx = cv.getContext("2d");
       ctx.fillStyle = "#f4eff3"; ctx.fillRect(0, 0, W, H);
       var g = ctx.createLinearGradient(0, 0, W, 0);
       g.addColorStop(0, "#ec6fa8"); g.addColorStop(1, "#46bfec");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, 190);
-      ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-      ctx.font = "500 28px " + JP; ctx.fillText("LoveLive! Series 15th Anniversary", W / 2, 52);
-      ctx.font = "700 64px " + JP; ctx.fillText("ラブライブ！フェス", W / 2, 124);
-      var dayLine = o.day === "1" ? "Day.1　2026.11.14 SAT" : o.day === "2" ? "Day.2　2026.11.15 SUN" : "2026.11.14 SAT – 11.15 SUN";
-      ctx.font = "500 28px " + JP; ctx.fillText(dayLine + "　バンテリンドーム ナゴヤ", W / 2, 170);
-
-      // seat stub
-      var sx = 48, sy = 222, sw = W - 96, sh = 168;
-      if (q.arena) return drawArenaStub(ctx, q, o, sx, sy, sw, sh, W, mapImg);
-      ctx.fillStyle = "#ffffff"; rr(ctx, sx, sy, sw, sh, 22); ctx.fill();
-      ctx.save(); rr(ctx, sx, sy, sw, sh, 22); ctx.clip();
-      ctx.fillStyle = "#c8246b"; ctx.fillRect(sx, sy, 170, sh); ctx.restore();
-      ctx.fillStyle = "#ffffff"; ctx.textAlign = "center";
-      ctx.font = "700 96px " + NUM; ctx.fillText(q.side, sx + 85, sy + 104);
-      ctx.font = "700 26px " + JP; ctx.fillText(q.side === "R" ? "1塁側" : "3塁側", sx + 85, sy + 144);
-      ctx.setLineDash([8, 8]); ctx.strokeStyle = "#e4d6df"; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(sx + 172, sy + 12); ctx.lineTo(sx + 172, sy + sh - 12); ctx.stroke(); ctx.setLineDash([]);
-      var items = [];
-      if (q.gate && !o.hideGate) items.push([q.gate, "ゲート"]);
-      if (q.passage && !o.hidePassage) items.push([q.passage, "通路"]);
-      if (!o.hideRow) items.push([q.row, "列"]);
-      if (!o.hideSeat && !q.noSeat) items.push([q.seat, "番"]);
-      var tierName = TIERS[q.tierKey].name;
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, 12);
+      ctx.drawImage(mapImg, 14, 22, 596, 596);
+      var x0 = 640, maxW = 530;
+      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "#c8246b"; ctx.font = "700 24px " + JP; ctx.fillText("LoveLive! Series 15th Anniversary", x0, 82);
+      ctx.fillStyle = "#23131d"; fitFont(ctx, "ラブライブ！フェス", 700, 60, JP, maxW); ctx.fillText("ラブライブ！フェス", x0, 150);
+      ctx.fillStyle = "#6e5a67"; fitFont(ctx, "2026.11.14–15　バンテリンドーム ナゴヤ", 500, 26, JP, maxW); ctx.fillText("2026.11.14–15　バンテリンドーム ナゴヤ", x0, 192);
+      ctx.fillStyle = "#e4d6df"; ctx.fillRect(x0, 222, maxW, 3);
+      ctx.fillStyle = "#c8246b"; rr(ctx, x0, 250, 150, 44, 22); ctx.fill();
+      ctx.fillStyle = "#ffffff"; ctx.font = "700 24px " + JP; ctx.textAlign = "center"; ctx.fillText("座席エリア", x0 + 75, 281);
       ctx.textAlign = "left";
-      var x0 = sx + 204;
-      ctx.fillStyle = "#6e5a67"; ctx.font = "500 28px " + JP;
-      ctx.fillText(tierName + (o.approx ? "（だいたいの位置）" : ""), x0, sy + 50);
-      if (items.length) {
-        var x = x0, maxX = sx + sw - 24;
-        items.forEach(function (it) {
-          ctx.fillStyle = "#23131d"; ctx.font = "700 84px " + NUM; ctx.fillText(String(it[0]), x, sy + 136);
-          x += ctx.measureText(String(it[0])).width + 4;
-          ctx.fillStyle = "#6e5a67"; ctx.font = "500 28px " + JP; ctx.fillText(it[1], x, sy + 136);
-          x += ctx.measureText(it[1]).width + 26;
-        });
-        if (x > maxX) { /* very long: redraw smaller */
-          ctx.fillStyle = "#ffffff"; ctx.fillRect(x0 - 4, sy + 64, maxX - x0 + 8, 90);
-          var line = items.map(function (it) { return it[0] + it[1]; }).join("  ");
-          ctx.fillStyle = "#23131d"; fitFont(ctx, line, 700, 60, JP, maxX - x0); ctx.fillText(line, x0, sy + 128);
-        }
-      } else {
-        ctx.fillStyle = "#23131d"; ctx.font = "700 56px " + JP;
-        ctx.fillText((q.tierKey === "f5" ? "5階" : "") + "スタンド" + (q.side === "R" ? "1塁側" : "3塁側"), x0, sy + 126);
-      }
-
-      // map
-      ctx.drawImage(mapImg, 140, 404, 800, 800);
-
-      // facts
-      var fx = shareFacts(q, o);
-      ctx.textAlign = "center"; ctx.fillStyle = "#23131d";
-      fitFont(ctx, "メインステージまで 約" + fx.dist + "m ・ " + fx.dir, 700, 40, JP, W - 120);
-      ctx.fillText("メインステージまで 約" + fx.dist + "m ・ " + fx.dir, W / 2, 1262);
-      ctx.fillStyle = "#6e5a67"; ctx.font = "500 22px " + JP;
-      ctx.fillText("ラブライブ！フェス 座席ファインダー（非公式）で作成　位置・距離は目安", W / 2, 1316);
-      return new Promise(function (res) { cv.toBlob(function (b) { res(b); }, "image/png"); });
+      var parts = a.title.split("・"), l1 = parts[0], l2 = parts.slice(1).join("・");
+      ctx.fillStyle = "#23131d"; fitFont(ctx, l1, 700, 54, JP, maxW); ctx.fillText(l1, x0, 366);
+      if (l2) { fitFont(ctx, l2, 700, 54, JP, maxW); ctx.fillText(l2, x0, 430); }
+      ctx.fillStyle = "#6e5a67"; fitFont(ctx, a.sub, 500, 30, JP, maxW); ctx.fillText(a.sub, x0, 484);
+      ctx.fillStyle = "#23131d"; fitFont(ctx, a.dist, 700, 32, JP, maxW); ctx.fillText(a.dist, x0, 538);
+      ctx.fillStyle = "#6e5a67"; ctx.font = "500 18px " + JP; ctx.fillText("位置・距離は目安です｜非公式ファンツール", x0, 600);
+      return cv.toDataURL("image/png");
     });
-  }
-  function drawArenaStub(ctx, q, o, sx, sy, sw, sh, W, mapImg) {
-    ctx.fillStyle = "#ffffff"; rr(ctx, sx, sy, sw, sh, 22); ctx.fill();
-    ctx.save(); rr(ctx, sx, sy, sw, sh, 22); ctx.clip();
-    ctx.fillStyle = "#c8246b"; ctx.fillRect(sx, sy, 170, sh); ctx.restore();
-    ctx.fillStyle = "#ffffff"; ctx.textAlign = "center";
-    ctx.font = "700 44px " + NUM; ctx.fillText("ARENA", sx + 85, sy + 92);
-    ctx.font = "700 26px " + JP; ctx.fillText("アリーナ", sx + 85, sy + 132);
-    ctx.setLineDash([8, 8]); ctx.strokeStyle = "#e4d6df"; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(sx + 172, sy + 12); ctx.lineTo(sx + 172, sy + sh - 12); ctx.stroke(); ctx.setLineDash([]);
-    var x0 = sx + 204, maxW = sx + sw - 24 - x0;
-    ctx.textAlign = "left"; ctx.fillStyle = "#6e5a67"; ctx.font = "500 28px " + JP;
-    ctx.fillText(q.upg === "none" ? "アップグレードなし" : "アップグレード", x0, sy + 50);
-    ctx.fillStyle = "#23131d";
-    var big = q.upg === "none" ? "アリーナ" : "エリア" + q.upg + "席";
-    fitFont(ctx, big, 700, 76, JP, maxW); ctx.fillText(big, x0, sy + 136);
-    ctx.drawImage(mapImg, 140, 404, 800, 800);
-    ctx.textAlign = "center"; ctx.fillStyle = "#23131d";
-    var line = "メインステージまで " + rangeText(zoneRange(q.upg, STAGE));
-    fitFont(ctx, line, 700, 40, JP, W - 120); ctx.fillText(line, W / 2, 1262);
-    ctx.fillStyle = "#6e5a67"; ctx.font = "500 22px " + JP;
-    ctx.fillText("ラブライブ！フェス 座席ファインダー（非公式）で作成　位置・距離は目安", W / 2, 1316);
-    return new Promise(function (res) { ctx.canvas.toBlob(function (b) { res(b); }, "image/png"); });
   }
   function refreshShare() {
     var q = share.q;
@@ -920,23 +915,9 @@ footer ul { margin: 0; padding-left: 18px; }
     var o = shareOpts();
     if (!share.dirty) $("share-text").value = buildShareText(q, o);
     updateXLink();
-    var my = ++share.seq;
-    makeShareImage(q, o).then(function (blob) {
-      if (my !== share.seq || !blob) return;
-      share.blob = blob;
-      if (share.url) URL.revokeObjectURL(share.url);
-      share.url = URL.createObjectURL(blob);
-      $("share-img").src = share.url;
-    }).catch(function () { $("share-msg").textContent = "画像を作れませんでした。ページを再読み込みしてもう一度お試しください。"; });
+    $("share-img").src = "og/" + areaIdOf(q) + ".png";
   }
   function updateXLink() { $("share-x").href = "https://x.com/intent/post?text=" + encodeURIComponent($("share-text").value); }
-  function shareFile() { return share.blob ? new File([share.blob], "lovelive-fest-seat.png", { type: "image/png" }) : null; }
-  function saveImage() {
-    if (!share.url) return;
-    var a = document.createElement("a");
-    a.href = share.url; a.download = "lovelive-fest-seat.png";
-    document.body.appendChild(a); a.click(); a.remove();
-  }
   ["day-1", "day-2", "day-none", "hide-gate", "hide-passage", "hide-row", "hide-seat"].forEach(function (id) {
     $(id).addEventListener("change", refreshShare);
   });
@@ -948,32 +929,17 @@ footer ul { margin: 0; padding-left: 18px; }
       navigator.clipboard.writeText($("share-text").value).then(function () { msg.textContent = "投稿文をコピーしました。"; }, function () { msg.textContent = "コピーできませんでした。投稿文を長押ししてコピーしてください。"; });
     } catch (e) { msg.textContent = "コピーできませんでした。投稿文を長押ししてコピーしてください。"; }
   });
-  function isPhone() {
-    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-      (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
-  }
-  // Phones: OS share sheet with the image + text (pick X). Others: save the image and open X's post screen.
-  $("share-x").addEventListener("click", function (e) {
-    var file = shareFile(), msg = $("share-msg");
-    updateXLink();
-    if (isPhone() && file && navigator.canShare && navigator.canShare({ files: [file] })) {
-      e.preventDefault();
-      navigator.share({ files: [file], text: $("share-text").value }).catch(function (err) {
-        if (err && err.name !== "AbortError") msg.textContent = "共有できませんでした。もう一度お試しください。";
-      });
-      return;
-    }
-    if (!share.url) { e.preventDefault(); msg.textContent = "画像を作っています。少し待ってからもう一度押してください。"; return; }
-    saveImage();
-    msg.textContent = "画像を保存しました。開いたXの投稿画面で、保存した画像（lovelive-fest-seat.png）を添付してください。";
-  });
+  $("share-x").addEventListener("click", updateXLink);
+  $("share-img").addEventListener("error", function () { this.hidden = true; });
+  $("share-img").addEventListener("load", function () { this.hidden = false; });
   function showShare(q) {
     share.q = q;
     $("share-card").hidden = false;
     refreshShare();
   }
 
-  window.__seat = { parseTicket: parseTicket, locate: locate, stageRelation: stageRelation, buildShareText: buildShareText };
+  window.__seat = { parseTicket: parseTicket, locate: locate, stageRelation: stageRelation, buildShareText: buildShareText, areaIdOf: areaIdOf };
+  window.__og = { ids: allAreaIds, info: function (id) { var a = areaInfo(id); return { id: a.id, title: a.title, sub: a.sub, dist: a.dist }; }, make: makeOgImage };
 
   var EXAMPLE = "２ゲート　スタンド３塁側　３８通路　L20列　300番";
   render(locate(parseTicket(EXAMPLE)), "表示例（" + EXAMPLE.replace(/　/g, " ") + "）");
