@@ -172,7 +172,7 @@ footer ul { margin: 0; padding-left: 18px; }
       </div>
       <div class="fields" id="stand-fields">
         <div><label for="row">列</label><input type="number" id="row" inputmode="numeric" min="1" max="61" placeholder="20" required></div>
-        <div><label for="seat">番号</label><input type="number" id="seat" inputmode="numeric" min="1" max="800" placeholder="300" required></div>
+        <div><label for="seat">番号（わかれば）</label><input type="number" id="seat" inputmode="numeric" min="1" max="800" placeholder="300"></div>
         <div><label for="passage">通路（任意）</label><input type="number" id="passage" inputmode="numeric" min="11" max="81" placeholder="38"></div>
         <div><label for="gate">ゲート（任意）</label><input type="number" id="gate" inputmode="numeric" min="1" max="8" placeholder="2"></div>
       </div>
@@ -407,9 +407,12 @@ footer ul { margin: 0; padding-left: 18px; }
     if ((m = t.match(/(\d+)\s*通路/))) res.passage = +m[1];
     if ((m = t.match(/(\d+)\s*階/))) res.floor = +m[1];
     if ((m = t.match(/(\d+)\s*列/))) res.row = +m[1];
+    else if ((m = t.match(/(?:^|[^A-Za-z])[RrLl]\s*(\d{1,2})(?!\d)(?!\s*(?:番|通路|ゲート|階))/))) res.row = +m[1];
     if ((m = t.match(/(\d+)\s*番/))) res.seat = +m[1];
     if (/[Rr]\s*\d+\s*列/.test(t) || /(1|一)塁/.test(t) || /ライト/.test(t) || /R側/.test(t)) res.side = "R";
     if (/[Ll]\s*\d+\s*列/.test(t) || /(3|三)塁/.test(t) || /レフト/.test(t) || /L側/.test(t)) res.side = res.side === "R" ? "conflict" : "L";
+    if (!res.side && /(?:^|[^A-Za-z])[Rr]\s*\d/.test(t)) res.side = "R";
+    if (!res.side && /(?:^|[^A-Za-z])[Ll]\s*\d/.test(t)) res.side = "L";
     if ((!res.side || res.side === "conflict") && res.passage && passageInfo(res.passage)) res.side = passageInfo(res.passage).side;
     return res;
   }
@@ -515,19 +518,30 @@ footer ul { margin: 0; padding-left: 18px; }
     if (side === "conflict") { errors.push("1塁側（R）と3塁側（L）の両方が含まれています。どちらか一方にしてください。"); side = null; }
     if (!side) errors.push("1塁側（R）か3塁側（L）かが読み取れませんでした。「1塁側」「R」などを含めてください。");
     if (!row) errors.push("列が読み取れませんでした。「20列」のように入力してください。");
-    if (!seat) errors.push("番号が読み取れませんでした。「300番」のように入力してください。");
     var tierKey = row ? tierOf(row) : null;
     if (row && !tierKey) errors.push(row + "列という列はありません。スタンドの列は1〜47列か51〜61列です。");
+    var pi0 = input.passage ? passageInfo(input.passage) : null;
+    var noSeat = !seat;
+    if (noSeat) {
+      if (!pi0) errors.push("番号が読み取れませんでした。「300番」のように入れるか、番号がわからないときは通路を入れてください。");
+      else if (side && pi0.side !== side) errors.push(input.passage + "通路は" + (pi0.side === "R" ? "1塁側（R）" : "3塁側（L）") + "の通路です。番号がないときは、サイドと通路が合っている必要があります。");
+      else if (tierKey && pi0.f5 !== (tierKey === "f5")) errors.push(input.passage + "通路は" + (pi0.f5 ? "5階" : "スタンド（1〜47列）") + "の通路です。番号がないときは、列と通路が合っている必要があります。");
+    }
     if (errors.length) return { errors: errors };
 
-    var deg = seatAngle(tierKey, seat);
+    var deg;
+    if (noSeat) {
+      var pIdx = input.passage - (pi0.f5 ? (side === "R" ? 50 : 70) : (side === "R" ? 10 : 30));
+      deg = pi0.f5 ? (60 * pIdx - 15) / 660 * 180 : (40 * pIdx - 20) / 720 * 180;
+    } else deg = seatAngle(tierKey, seat);
     var s = side === "R" ? 1 : -1;
     var p = pt(deg, rowRadius(row), s);
-    var ep = estPassage(tierKey, side, seat);
+    var ep = noSeat ? input.passage : estPassage(tierKey, side, seat);
 
     if (tierKey !== "f5" && seat > 720) warns.push("番号が大きすぎるようです。スタンド（1〜47列）の番号はおおむね700番前後までです。");
     if (tierKey === "f5" && seat > 660) warns.push("番号が大きすぎるようです。5階の番号はおおむね650番前後までです。");
     if (tierKey !== "f5" && deg > OUTFIELD_FROM_DEG && row < 26) warns.push("外野側は26列が最前列です。列か番号をもう一度確かめてください。");
+    if (noSeat) warns.push("番号がないので、通路の位置から横の位置を推定しています。図の丸は「だいたいこの辺」です。");
     if (input.floor) {
       if (input.floor === 5 && tierKey !== "f5") warns.push("「5階」とありますが、" + row + "列は5階の列（51〜61列）ではありません。");
       if (input.floor !== 5 && input.floor !== 4 && tierKey === "f5") warns.push(input.floor + "階とありますが、" + row + "列は5階の列です。");
@@ -538,11 +552,11 @@ footer ul { margin: 0; padding-left: 18px; }
       else {
         if (pi.side !== side) warns.push(input.passage + "通路は" + (pi.side === "R" ? "1塁側（R）" : "3塁側（L）") + "の通路です。サイドを確かめてください。");
         if (pi.f5 !== (tierKey === "f5")) warns.push(input.passage + "通路は" + (pi.f5 ? "5階" : "スタンド（1〜47列）") + "の通路です。列と合っているか確かめてください。");
-        else if (pi.side === side && Math.abs(input.passage - ep) > 1) warns.push("チケットの" + input.passage + "通路と、番号からの推定（" + ep + "通路）が離れています。図の位置は番号から出しています。");
+        else if (!noSeat && pi.side === side && Math.abs(input.passage - ep) > 1) warns.push("チケットの" + input.passage + "通路と、番号からの推定（" + ep + "通路）が離れています。図の位置は番号から出しています。");
       }
     }
     return {
-      side: side, row: row, seat: seat, gate: input.gate, passage: input.passage, floor: input.floor,
+      side: side, row: row, seat: seat, noSeat: noSeat, gate: input.gate, passage: input.passage, floor: input.floor,
       tierKey: tierKey, deg: deg, x: f(p.x), y: f(p.y),
       estPassage: input.passage && passageInfo(input.passage) ? input.passage : ep, calcPassage: ep,
       area: areaOf(tierKey, side, seat, deg), warns: warns
@@ -619,17 +633,20 @@ footer ul { margin: 0; padding-left: 18px; }
       ? { x: "距離より向きが問題", note: "ステージの横〜後ろなので、スクリーンや演出全体を楽しむ席です" }
       : binoculars(Math.min(rel.dist, rel.distCenter + 20), q.tierKey);
     var tier = TIERS[q.tierKey];
-    var dist5 = Math.max(10, Math.round(rel.dist / 5) * 5);
-    var distC5 = Math.max(5, Math.round(rel.distCenter / 5) * 5);
+    var stepD = q.noSeat ? 10 : 5;
+    var dist5 = Math.max(10, Math.round(rel.dist / stepD) * stepD);
+    var distC5 = Math.max(5, Math.round(rel.distCenter / stepD) * stepD);
 
     var stub = '<div class="stub"><div class="stub-side">' + q.side + "<small>" + (q.side === "R" ? "1塁側" : "3塁側") + "</small></div>" +
       '<div class="stub-main">' +
       (q.gate ? '<div class="stub-item"><b>' + q.gate + "</b><span>ゲート</span></div>" : "") +
       (q.passage ? '<div class="stub-item"><b>' + q.passage + "</b><span>通路</span></div>" : "") +
       '<div class="stub-item"><b>' + q.row + "</b><span>列</span></div>" +
-      '<div class="stub-item"><b>' + q.seat + "</b><span>番</span></div></div></div>";
+      (q.noSeat ? "" : '<div class="stub-item"><b>' + q.seat + "</b><span>番</span></div>") + "</div></div>";
 
-    var passageFact = q.passage
+    var passageFact = q.noSeat
+      ? "<dd>" + q.passage + "通路<small>チケット記載。横の位置はこの通路から推定</small></dd>"
+      : q.passage
       ? "<dd>" + q.passage + "通路<small>チケット記載。番号からの推定は" + q.calcPassage + "通路</small></dd>"
       : "<dd>" + q.calcPassage + "通路あたり<small>前後1通路ずれることがあります</small></dd>";
 
@@ -655,14 +672,14 @@ footer ul { margin: 0; padding-left: 18px; }
       '<div class="row"><button type="button" class="btn-ghost" id="copy-btn">結果をコピー</button><span class="hint" id="copy-msg"></span></div>';
 
     var slot = document.getElementById("map-slot");
-    slot.appendChild(buildMap(q));
+    slot.appendChild(buildMap(q, q.noSeat ? { approx: true } : {}));
     if (!title) setTimeout(function () { showShare(q); }, 0); else document.getElementById("share-card").hidden = true;
     var lg = document.createElement("div");
     lg.className = "legend";
     lg.innerHTML = '<span><i style="background:var(--t1)"></i>1〜24列</span><span><i style="background:var(--t2)"></i>25〜34列</span><span><i style="background:var(--t3)"></i>35〜47列</span><span><i style="background:var(--t5)"></i>5階</span><span><i style="background:var(--area-s)"></i>アリーナS</span><span><i style="background:var(--area-a)"></i>アリーナA</span><span><i style="background:var(--pin)"></i>この席（推定）</span>';
     slot.appendChild(lg);
     document.getElementById("copy-btn").addEventListener("click", function () {
-      var text = "ラブライブ！フェス バンテリンドーム " + (q.side === "R" ? "1塁側" : "3塁側") + " " + q.side + q.row + "列 " + q.seat + "番" +
+      var text = "ラブライブ！フェス バンテリンドーム " + (q.side === "R" ? "1塁側" : "3塁側") + " " + q.side + q.row + "列" + (q.noSeat ? "" : " " + q.seat + "番") +
         (q.passage ? "（" + q.passage + "通路）" : "") + "\n" + tier.name + "・" + q.area + "／メインステージまで約" + dist5 + "m（" + rel.dir + "）";
       var msg = document.getElementById("copy-msg");
       try {
@@ -674,7 +691,7 @@ footer ul { margin: 0; padding-left: 18px; }
   function loadHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch (e) { return []; } }
   function saveHistory(q) {
     var item = q.arena ? { arena: true, upg: q.upg, gate: q.gate || null }
-      : { side: q.side, row: q.row, seat: q.seat, passage: q.passage || null, gate: q.gate || null, floor: q.floor || null };
+      : { side: q.side, row: q.row, seat: q.noSeat ? null : q.seat, passage: q.passage || null, gate: q.gate || null, floor: q.floor || null };
     var list = loadHistory().filter(function (h) { return q.arena ? !(h.arena && h.upg === item.upg) : !(h.side === item.side && h.row === item.row && h.seat === item.seat); });
     list.unshift(item);
     list = list.slice(0, 8);
@@ -690,7 +707,7 @@ footer ul { margin: 0; padding-left: 18px; }
     list.forEach(function (h) {
       var b = document.createElement("button");
       b.type = "button";
-      b.textContent = h.arena ? "アリーナ・" + ZONES[h.upg || "none"].short : h.side + h.row + "列 " + h.seat + "番" + (h.passage ? "・" + h.passage + "通路" : "");
+      b.textContent = h.arena ? "アリーナ・" + ZONES[h.upg || "none"].short : h.side + h.row + "列" + (h.seat ? " " + h.seat + "番" : "") + (h.passage ? "・" + h.passage + "通路" : "");
       b.addEventListener("click", function () { run(h, false); });
       box.appendChild(b);
     });
@@ -719,7 +736,7 @@ footer ul { margin: 0; padding-left: 18px; }
     document.getElementById(q.side === "R" ? "side-r" : "side-l").checked = true;
     syncMode();
     document.getElementById("row").value = q.row;
-    document.getElementById("seat").value = q.seat;
+    document.getElementById("seat").value = q.noSeat ? "" : q.seat;
     document.getElementById("passage").value = q.passage || "";
     document.getElementById("gate").value = q.gate || "";
   }
@@ -758,7 +775,7 @@ footer ul { margin: 0; padding-left: 18px; }
       hideGate: $("hide-gate").checked, hidePassage: $("hide-passage").checked,
       hideRow: $("hide-row").checked, hideSeat: $("hide-seat").checked
     };
-    o.approx = o.hideRow || o.hideSeat;
+    o.approx = o.hideRow || o.hideSeat || !!(share.q && share.q.noSeat);
     return o;
   }
   function shareFacts(q, o) {
@@ -771,7 +788,7 @@ footer ul { margin: 0; padding-left: 18px; }
     if (q.gate && !o.hideGate) parts.push(q.gate + "ゲート");
     if (q.passage && !o.hidePassage) parts.push(q.passage + "通路");
     var main = (q.tierKey === "f5" ? "5階" : "") + "スタンド" + (q.side === "R" ? "1塁側" : "3塁側");
-    var rs = (!o.hideRow ? q.side + q.row + "列" : "") + (!o.hideSeat ? (o.hideRow ? "" : " ") + q.seat + "番" : "");
+    var rs = (!o.hideRow ? q.side + q.row + "列" : "") + (!o.hideSeat && !q.noSeat ? (o.hideRow ? "" : " ") + q.seat + "番" : "");
     parts.push(main + (rs ? " " + rs.trim() : ""));
     return parts.join(" ");
   }
@@ -839,7 +856,7 @@ footer ul { margin: 0; padding-left: 18px; }
       if (q.gate && !o.hideGate) items.push([q.gate, "ゲート"]);
       if (q.passage && !o.hidePassage) items.push([q.passage, "通路"]);
       if (!o.hideRow) items.push([q.row, "列"]);
-      if (!o.hideSeat) items.push([q.seat, "番"]);
+      if (!o.hideSeat && !q.noSeat) items.push([q.seat, "番"]);
       var tierName = TIERS[q.tierKey].name;
       ctx.textAlign = "left";
       var x0 = sx + 204;
